@@ -1,0 +1,394 @@
+---
+title: "Clase 2. Tidyverse y Mercado de Trabajo"
+author: "Guido Weksler y Diego Kozlowski"
+date: "13 de Octubre de 2017"
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+    depth: 3
+
+---
+
+```{r, warning=FALSE}
+rm(list=ls())
+```
+
+# [Tidyverse](https://www.tidyverse.org/)         
+
+Este paquete agrupa una serie de paquetes que tienen una misma lÃ³gica en su diseÃ±o y por ende funcionan en armonÃ­a.     
+Entre ellos usaremos principalmente __ggplot__ para realizar grÃ¡ficos, y __dplyr__ y __tidyr__ para realizar transformaciones sobre nuestro set de datos.
+
+A continuaciÃ³n cargamos la librerÃ­a a nuestro ambiente. Para ello debe estar previamente instalada en nuestra pc.
+```{r}
+library(tidyverse)
+```
+
+Para mostrar el funcionamiento bÃ¡sico de tydyverse retomaremos el ejemplo de la clase 1, con lo cual volvemos a crear el set de datos del [Indice de salarios](http://www.indec.gob.ar/bajarCuadroEstadistico.asp?idc=4020B33440609462654542BD0BC320F1523DA0DC52C396201DB4DD5861FFEDC9AD1436681AC84179).
+```{r}
+INDICE  <- c(100,   100,   100,
+             101.8, 101.2, 100.73,
+             102.9, 102.4, 103.2)
+
+FECHA  <-  c("Oct-16", "Oct-16", "Oct-16",
+             "Nov-16", "Nov-16", "Nov-16",
+             "Dic-16", "Dic-16", "Dic-16")
+
+
+GRUPO  <-  c("Privado_Registrado","PÃºblico","Privado_No_Registrado",
+             "Privado_Registrado","PÃºblico","Privado_No_Registrado",
+             "Privado_Registrado","PÃºblico","Privado_No_Registrado")
+
+Datos <- data.frame(INDICE, FECHA, GRUPO)
+
+
+```
+
+
+## Dplyr
+
+El caracter principal para utilizar este paquete es ```%>%``` , _pipe_ (de tuberÃ­a).
+
+Los ```%>%``` toman el set de datos a su izquierda, y los transforman mediante los comandos a su derecha, en los cuales los elementos de la izquierda estÃ¡n implÃ­citos. En otros tÃ©rminos.
+
+$f(x,y)$ es equivalente a $x$ %>% $f(.,y)$ 
+
+Veamos las principales funciones que pueden utilizarse con la lÃ³gica de este paquete:
+
+### filter
+
+Permite filtrar la tabla acorde al cumplimiento de condiciones lÃ³gicas
+ 
+```{r}
+Datos %>% 
+  filter(INDICE>101 , GRUPO == "Privado_Registrado")
+
+```
+NÃ³tese que en este caso al separar con una  ```,``` las condiciones se exige el cumplimiento de ambas. En caso de desear que se cumpla una sola condiciÃ³n debe utilizarse el caracter ```|```
+```{r}
+Datos %>% 
+  filter(INDICE>101 | GRUPO == "Privado_Registrado")
+```
+
+### rename
+Permite renombrar una columna de la tabla. Funciona de la siguiente manera: 
+ ```Data %>% rename( nuevo_nombre = viejo_nombre )``` 
+```{r}
+Datos %>% 
+  rename(Periodo = FECHA)
+```
+NÃ³tese que a diferencia del ejemplo de la funciÃ³n __filter__ donde utilizÃ¡bamos __==__ para comprobar una condiciÃ³n lÃ³gica, en este caso se utiliza sÃ³lo un __=__ ya que lo estamos haciendo es _asignar_ un nombre.
+
+### mutate
+Permite agregar una variable a la tabla (especificando el nombre que tomarÃ¡ esta), que puede ser el resultado de operaciones sobre otras variables de la misma tabla.       
+
+En caso de especificar el nombre de una columna existente, el resultado de la operaciÃ³n realizada "sobrescribirÃ¡" la informaciÃ³n de la columna con dicho nombre
+```{r}
+Datos <- Datos %>% 
+  mutate(Doble=INDICE*2)
+Datos
+```
+
+### case_when
+Permite definir una variable, la cual toma un valor particular para cada condiciÃ³n establecida. En caso de no cumplir ninguna de las condiciones establecidas la variable tomara valor __NA__
+La sintaxis de la funciÃ³n es case_when( _condicion lÃ³gica1_ __~__ _valor asignado1_).
+
+```{r}
+Datos <- Datos %>% 
+  mutate(Caso_cuando = case_when(GRUPO == "Privado_Registrado"   ~ INDICE*2,
+                                 GRUPO == "PÃºblico"              ~ INDICE*3,
+                                 GRUPO == "Privado_No_Registrado"~ INDICE*5))
+Datos
+```
+
+### select
+Permite especificar la serie de columnas que se desea conservar de un DataFrame. TambiÃ©n pueden especificarse las columnas que se desean descartar (agregÃ¡ndoles un _-_). Muy Ãºtil para agilizar el trabajo en bases de datos de gran tamaÃ±o.
+```{r}
+Datos2 <- Datos %>% 
+  select(INDICE, FECHA, GRUPO)
+Datos2
+
+Datos <- Datos %>% 
+  select(-c(Doble,Caso_cuando))
+Datos
+```
+
+### arrange
+Permite Ordenar la tabla por los valores de determinada/s variable/s. Es Ãºtil cuando luego deben hacerse otras operaciones que requieran del ordenamiento de la tabla
+```{r}
+Datos <- Datos %>% 
+  arrange(GRUPO, INDICE)
+Datos
+```
+
+### summarise
+Crea una nueva tabla que resuma la informaciÃ³n original. Para ello, Definimos las variables de resumen y las formas de agregaciÃ³n.
+```{r}
+Datos %>% 
+  summarise(Indprom = mean(INDICE))
+
+```
+
+### group_by
+Esta funciÃ³n permite realizar operaciones de forma agrupada. Lo que hace la funciÃ³n es "separar" a la tabla segÃºn los valores de la variable indicada y realizar las operaciones que se especificaba  continuaciÃ³n, de manera independiente para cada una de las "subtablas". En nuestro ejemplo, serÃ­a Ãºtil para calcular el promedio de los indices por _Fecha_ 
+```{r}
+Datos %>% 
+  group_by(FECHA) %>%
+  summarise(Indprom = mean(INDICE))
+```
+
+## Joins
+
+Otra implementaciÃ³n muy importante del paquete dplyr son las funciones para unir tablas (joins)
+
+
+![fuente: http://rstudio-pubs-static.s3.amazonaws.com/227171_618ebdce0b9d44f3af65700e833593db.html](joins.png)         
+
+###left_join    
+
+Veamos un ejemplo de la funciÃ³n __left_join__ (una de las mÃ¡s utilizadas en la prÃ¡ctica).       
+Para ello crearemos previamente un Dataframe que contenga un Ponderador para cada uno de los Grupos del Dataframe _Datos_. Aprovecharemos el ejemplo para introducir la funciÃ³n __weigthed.mean__, y asÃ­ calcular un Indice Ponderado.
+
+```{r}
+Ponderadores <- data.frame(GRUPO = c("Privado_Registrado","PÃºblico","Privado_No_Registrado"),
+                            PONDERADOR = c(50.16,29.91,19.93))
+
+Datos_join <- Datos %>% 
+  left_join(.,Ponderadores, by = "GRUPO")
+Datos_join
+
+Datos_Indice_Gral <- Datos_join %>% 
+  group_by(FECHA) %>% 
+  summarise(Indice_Gral = weighted.mean(INDICE,w = PONDERADOR))
+
+Datos_Indice_Gral
+```
+
+## Tidyr
+
+El paquete tidyr esta pensado para facilitar el emprolijamiento de los datos.
+
+__Gather__ es una funciÃ³n que nos permite pasar los datos de forma horizontal a una forma vertical. 
+
+__spread__ es una funciÃ³n que nos permite pasar los datos de forma vertical a una forma horizontal.
+
+![fuente: http://www.gis-blog.com/data-management-with-r-tidyr-part-1/](spreadVSgather.png)
+
+
+```{r}
+#Utilzamos un conjunto de datos que viene con la librerÃ­a datasets
+library(datasets)
+
+data(iris)
+iris <- iris %>% 
+  mutate(id = 1:nrow(.)) %>%  #le agrego un ID
+  select(id, everything()) # lo acomodo para que el id este primero. 
+
+iris
+```
+
+
+  
+### Gather y Spread
+
+```{r}
+iris_vertical <- iris %>% gather(., # el . llama a lo que esta atras del %>% 
+                                 key   = Variables,
+                                 value = Valores,
+                                 2:5) #le indico que columnas juntar
+iris_vertical
+```
+
+Podemos deshacer el __gather__ con un __Spread__
+```{r}
+iris_horizontal <- iris_vertical %>%
+  spread(. ,
+         key   = Variables, #la llave es la variable que va a dar los nombres de columna
+         value = Valores) #los valores con que se llenan las celdas
+iris_horizontal
+```
+
+
+# [Mercado de Trabajo](http://www.indec.gob.ar/uploads/informesdeprensa/EPH_cont_1trim17.pdf)
+Cuadros 1.1 y 1.2.
+
+
+Cargamos dos librerÃ­as que usaremos respectivamente para leer y escribir archivos en excel.   
+
+```{r, message=FALSE, warning=F}
+library(readxl) # para leer archivos en excel
+library(xlsx)   # para escribir archivos en excel
+```
+
+#### Carpetas de Trabajo
+
+Dado que vamos a trabajar utilizando informaciÃ³n almacenada en el disco, resultarÃ¡ Ãºtil crear objetos que contengan las direcciones de nuestras carpetas de trabajo.
+A continuaciÃ³n veremos una formula genÃ©rica de crear estos objetos, a partir de identificar donde esta guardado el script.
+```{r}
+# Funcion para obtener la direccion del Script Obtengo la ubicaciÃ³n del Script en el Disco
+dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+
+# A partir del objeto dir, creo un objeto con la direcciÃ³n de la carpeta que contiene los microdatos y otro con la que contendrÃ¡ los resultados.
+
+bases.dir      <-  paste0(dirname(dir),"/Fuentes/")
+resultados.dir <- paste0(dirname(dir),"/Resultados/")
+```
+
+#### Carga de Informacion
+
+La funciÃ³n __list.files__ nos permite observar los archivos que contiene una determinada carpeta             
+
+```{r}
+list.files(bases.dir)
+```
+La funciÃ³n __read.table__ nos permite levantar los archivos de extensiÃ³n ".txt"               
+La funciÃ³n __read_excel__ nos permite levantar los archivos de extensiÃ³n ".xlsx"                 
+
+Levantamos la base individual del primer trimestre de 2017, y un listado que contiene los Nombres y CÃ³digos de los Aglomerados EPH.
+```{r}
+Individual_t117 <-
+  read.table(
+  paste0(bases.dir, "usu_individual_t117.txt"),
+  sep = ";",
+  dec = ",",
+  header = TRUE,
+  fill = TRUE )
+  
+  
+  Aglom <- read_excel(paste0(bases.dir, "Aglomerados EPH.xlsx"))
+```
+
+
+
+## Cuadro 1.1 
+
+Creo una tabla con los niveles de:
+- PoblaciÃ³n
+- Ocupados
+- Desocupados
+- PEA
+- Ocupados demandantes
+- Subocupados (demandantes, no demandantes y total)
+
+Estos niveles nos van a permitir calcular las tasas de forma sencilla. 
+
+```{r}
+####Cuadro 1.1 Principales indicadores. Total 31 aglomerados u
+
+Cuadro_1.1a <- Individual_t117 %>% 
+  summarise(Poblacion         = sum(PONDERA),
+            Ocupados          = sum(PONDERA[ESTADO == 1]),
+            Desocupados       = sum(PONDERA[ESTADO == 2]),
+            PEA               = Ocupados + Desocupados,
+            Ocupados_demand   = sum(PONDERA[ESTADO == 1 & PP03J ==1]),
+            Suboc_demandante  = sum(PONDERA[ESTADO == 1 & INTENSI ==1 & PP03J==1]),
+            Suboc_no_demand   = sum(PONDERA[ESTADO == 1 & INTENSI ==1 & PP03J %in% c(2,9)]),
+            Subocupados       = Suboc_demandante + Suboc_no_demand ,
+# TambiÃ©n podemos llamar a las variables entre comillas, incluyendo nombres compuestos
+# A su vez, podemos utilizar la variable reciÃ©n creada en la definciÃ³n de otra varible
+            'Tasa Actividad'                  = PEA/Poblacion,
+            'Tasa Empleo'                     = Ocupados/Poblacion,
+            'Tasa Desocupacion'               = Desocupados/PEA,
+            'Tasa ocupados demandantes'       = Ocupados_demand/PEA,
+            'Tasa SubocupaciÃ³n'               = Subocupados/PEA,
+            'Tasa SubocupaciÃ³n demandante'    = Suboc_demandante/PEA,
+            'Tasa SubocupaciÃ³n no demandante' = Suboc_no_demand/PEA) 
+Cuadro_1.1a 
+```
+
+Una vez que calculamos las tasas, podemos borrar los niveles con un __select__
+```{r}
+Cuadro_1.1a <- Cuadro_1.1a %>% 
+  select(-c(1:8))
+
+Cuadro_1.1a
+```
+
+Con __gather__ podemos dar vuelta la tabla para que quede como en la publicaciÃ³n
+
+```{r}
+
+Cuadro_1.1a <- Cuadro_1.1a %>% 
+  gather(Tasas, Valor, 1:ncol(.))
+
+
+Cuadro_1.1a
+```
+
+En caso de querer expresar los resultados como porcentajes, utilizamos la funciÃ³n __sprintf__. Para ello debemos utilizar __mutate__ para transformar la columna Valor.
+```{r}
+Cuadro_1.1a <- Cuadro_1.1a %>% 
+  mutate(Valor = sprintf("%1.1f%%", 100*Valor))
+
+Cuadro_1.1a
+```
+NÃ³tese que en este caso, para poder aÃ±adir el %, la funciÃ³n transforma a la variable en un Character, por ende debe tenerse en cuenta que se pierde la informaciÃ³n del numero completo.
+
+## Cuadro 1.2
+
+En este caso, podemos ver que simplemente agregando la funciÃ³n __group_by__ podemos replicar el procedimiento para cada uno de los aglomerados. Y a su vez, podemos realizar en un solo paso los arreglos posteriores sobre nuestra tabla.
+
+```{r}
+Cuadro_1.2a <- Individual_t117 %>% 
+  group_by(AGLOMERADO) %>% 
+  summarise(Poblacion         = sum(PONDERA),
+            Ocupados          = sum(PONDERA[ESTADO == 1]),
+            Desocupados       = sum(PONDERA[ESTADO == 2]),
+            PEA               = Ocupados + Desocupados,
+            Ocupados_demand   = sum(PONDERA[ESTADO == 1 & PP03J == 1]),
+            Suboc_demandante  = sum(PONDERA[ESTADO == 1 & INTENSI == 1 & PP03J == 1]),
+            Suboc_no_demand   = sum(PONDERA[ESTADO == 1 & INTENSI == 1 & PP03J %in% c(2, 9)]),
+            Subocupados       = Suboc_demandante + Suboc_no_demand,
+            'Tasa Actividad'                  = PEA/Poblacion,
+            'Tasa Empleo'                     = Ocupados/Poblacion,
+            'Tasa Desocupacion'               = Desocupados/PEA,
+            'Tasa ocupados demandantes'       = Ocupados_demand/PEA,
+            'Tasa SubocupaciÃ³n'               = Subocupados/PEA,
+            'Tasa SubocupaciÃ³n demandante'    = Suboc_demandante/PEA,
+            'Tasa SubocupaciÃ³n no demandante' = Suboc_no_demand/PEA) %>% 
+  select(-c(2:9)) %>% 
+  left_join(.,Aglom) %>% 
+  select(Nom_Aglo,everything(.),-AGLOMERADO) 
+
+Cuadro_1.2a
+```
+
+#### Exportar resultados a  Excel
+La funciÃ³n __write.xlsx__ nos permite guardar en un Excel los resultados de nuestro procesamiento de la informaciÃ³n. Esta funciÃ³n requiere que el tipo de Datos sea un DataFrame.
+```{r}
+class(Cuadro_1.2a)
+```
+Como nos muestra la funciÃ³n __class__, la funciones del  __tidyverse__ al realizar las operaciones agrupadas, transforma el tipo de de los datos. Por ende, para guardar los resultados debemos reconvertir nuestra tabla en un DataFrame con la funciÃ³n __as.data.frame__.    
+
+__write.xlsx__ entre sus parÃ¡metros requiere especificar:
+
+- El objeto a guardar
+- La ruta y nombre del archivo que serÃ¡ guardado
+
+De manera opcional puede tambiÃ©n especificarse:
+
+- El nombre de la Hoja
+- Si se desea pisar (append = FALSE) o incorporar (append = TRUE) archivos que tengan el mismo nombre
+- Si deseamos que figuren o no los nÃºmeros de filas en nuestra tabla           
+
+```{r eval=FALSE}
+write.xlsx(as.data.frame(Cuadro_1.1a), paste0(resultados.dir,"Informe Mercado de Trabajo.xlsx"),sheetName = "Cuadro 1.1", append = FALSE, row.names = FALSE)
+
+write.xlsx(as.data.frame(Cuadro_1.2a), paste0(resultados.dir,"Informe Mercado de Trabajo.xlsx"),sheetName = "Cuadro 1.2", append = TRUE, row.names = FALSE)
+
+```
+
+
+# Ejercicios para practicar
+
+- Levantar la Ãºltima base individual de EPH
+- Crear un vector llamado __Variables__ que contenga los nombres de las siguientes variables de interÃ©s para realizar algunos ejercicios:
+      - Edad, Sexo, Ingreso de la ocupaciÃ³n principal, CategorÃ­a ocupacional, ESTADO, PONDERA y PONDIH
+- Acotar la Base Ãºnicamente a las variables de interÃ©s, utilizando el vector __Variables__ 
+
+- Calcular las tasas de actividad, empleo y desempleo segÃºn sexo, para jÃ³venes entre 18 y 35 aÃ±os
+- Calcular el salario promedio por sexo, para dos grupos de edad: 18 a 35 aÃ±os y 36 a 70 aÃ±os. (Recordatorio: La base debe filtrarse para contener Ãºnicamente OCUPADOS ASALARIADOS)
+- Grabar los resultados en un excel (Previamente creando un objeto que contenga el directorio a utilizar)
+- Replicar el cÃ¡lculo de las tasas anteriores para distintos trimestres,levantando las bases desde el segundo trimestre 2016 hasta la Ãºltima.
+    - Tips: juntar las bases con el comando ```bind_rows()```
+    - Probar con ```gather()``` y ```spread()``` como quedan mejor los resultados
