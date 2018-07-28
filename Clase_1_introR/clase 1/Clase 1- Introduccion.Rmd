@@ -48,18 +48,6 @@ El _entorno_ más cómodo para utilizar el _lenguaje_ __R__ es el _programa_ __R
 ![Pantalla Rstudio](Pantalla Rstudio.png)
 
 
-## Diferencias con STATA y SPSS
-
-- Gratuito
-- Únicamente funciona por líneas de código (No hay botones para ejecutar comandos)
-- Posibilita trabajar con múltiples bases de microdatos al mismo tiempo, sin mayor dificultad (No requiere abrir cada base, trabajarla por separado y luego cerrarla) 
-- Más potente
-    - Totalmente automatizable
-    - Aportes de usuario 
-    - Extensible a otros lenguajes y usos (esta presentación)
-- Más veloz:
-
-
 ![fuente: https://github.com/matthieugomez/benchmark-stata-r/blob/master/output/1e7.png](stataR.png)
 
 
@@ -97,7 +85,6 @@ A <- B
 A   #Ahora A toma el valor de B, y B continua conservando el mismo valor
 B
 ```
-
 
 ## R base
 
@@ -150,9 +137,10 @@ D
 - R es sensible a mayúsculas y minúsculas, tanto para los nombres de las variables, como para las funciones y parámetros.
 - Los __espacios en blanco__ y los __carriage return__ (_enter_) no son considerados por el lenguaje. Los podemos aprovechar para emprolijar el código y que la lectura sea más simple[^2].
 
-[^2]: veremos que existen ciertas excepciones con algunos paquetes más adelante. 
+[^2]: existen ciertas excepciones con algunos paquetes más adelante. 
 
-- El __numeral__ ```#``` se utiliza para hacer comentarios. Todo lo que se escribe después del # no es interpretado por R. Se debe utilizar un # por cada línea de código que se desea anular
+- El __numeral__ ```#``` se utiliza para hacer comentarios. Todo lo que se escribe después del # no es interpretado por R. Se debe utilizar un # por cada línea de código que se desea anular.
+**SHORTCUT**: En R-Studio se puede seleccionar todo un bloque de texto y comentarlo completo apretando CTRL+SHIFT+C
 
 - Los __corchetes__ ```[]``` se utilizan para acceder a un objeto:
     - en un vector[n° orden]
@@ -183,19 +171,31 @@ tabla[2,3] <- funcion(A=a, B=b, C=c)
 ### Valores
 Los valores tienen distintos _tipos_:   
 
+* El comando class() identifica el tipo de un objeto desde una perspectiva de programación orientada a objetos en R. Podemos redifinir la clase de un objeto
+* El comando type() identifica el tipo de un objeto según el lenguaje R. No podemos modificar el tipo de un objeto
+
+
 __Numeric__
 ```{r}
-A <-  1
-class(A)
+A <- 1
+class(A)   
+typeof(A)
 ```
 
+Tratemos de cambiar la clase y el tipo de nuestro objeto
 
+```{r}
+class(A) <- "nueva_clase"
+class(A)
+typeof(A) <- "nuevo_tipo"
+```
 
 __Character__
 ```{r}
 A <-  paste('Soy', 'una', 'concatenación', 'de', 'caracteres', sep = " ")
 A
 class(A)
+typeof(A)
 ```
 
 
@@ -203,12 +203,37 @@ class(A)
 __Factor__
 ```{r}
 A <- factor("Soy un factor, con niveles fijos")
+A
 class(A)
+typeof(A)
 ```
 
 La diferencia entre un _character_ y un _factor_ es que el último tiene solo algunos valores permitidos (levels), y se le puede dar un orden
 
+```{r}
+A <- factor(c("R","Weka","SPSS","SAS","R"))
+A
+class(A)
+typeof(A)
+# ¿Cuále son sus niveles?
+levels(A)
+# ¿Está ordenado?
+is.ordered(A)
+```
 
+```{r}
+A <- factor(c("R","Weka","SPSS","SAS","R"), ordered = TRUE)
+A
+class(A)
+typeof(A)
+# ¿Cuáles son sus niveles?
+levels(A)
+# ¿Está ordenado?
+is.ordered(A)
+# ¿Podemos cambiar el orden de los niveles?
+A <- factor(c("R","Weka","SPSS","SAS","R"), ordered = TRUE, levels = c("SPSS","SAS","Weka","R"))
+A
+```
 
 __Date__
 ```{r}
