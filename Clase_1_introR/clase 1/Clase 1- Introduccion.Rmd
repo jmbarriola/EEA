@@ -158,18 +158,13 @@ Ejemplo: si queremos definir al elemento de la fila 2 y columna 3 de una _tabla_
 tabla[2,3] <- funcion(A=a, B=b, C=c)
 ```
 
-## Objetos:
+## Tipos de datos y estructuras de datos:
 
-- Valor
-- Vector
-- Matriz
-- Data Frame
-- Lista
+Los tipos de datos son una clase de valores que se pueden construir para representar información. Las estructuras de datos es una forma abstracta compleja de representar y guardar información 
 
 
-
-### Valores
-Los valores tienen distintos _tipos_:   
+### Tipos de datos
+Los datos tienen distintos _tipos_:   
 
 * El comando class() identifica el tipo de un objeto desde una perspectiva de programación orientada a objetos en R. Podemos redifinir la clase de un objeto
 * El comando type() identifica el tipo de un objeto según el lenguaje R. No podemos modificar el tipo de un objeto
@@ -190,6 +185,22 @@ class(A)
 typeof(A) <- "nuevo_tipo"
 ```
 
+__Integer__
+```{r}
+A <- 1L
+A
+class(A)   
+typeof(A)
+```
+
+__Complex__
+```{r}
+A <- 2+2i
+A
+class(A)   
+typeof(A)
+```
+
 __Character__
 ```{r}
 A <-  paste('Soy', 'una', 'concatenación', 'de', 'caracteres', sep = " ")
@@ -199,10 +210,9 @@ typeof(A)
 ```
 
 
-
 __Factor__
 ```{r}
-A <- factor("Soy un factor, con niveles fijos")
+A <- factor("Soy un factor con niveles fijos")
 A
 class(A)
 typeof(A)
@@ -235,13 +245,21 @@ A <- factor(c("R","Weka","SPSS","SAS","R"), ordered = TRUE, levels = c("SPSS","S
 A
 ```
 
+__Logical__
+```{r}
+A <- TRUE
+class(A)
+typeof(A)
+```
+
 __Date__
 ```{r}
 A <- as.Date("2017-01-01")
 class(A)
+typeof(A)
 ```
 
-
+### Estructuras de datos
 
 ### Vectores
 
@@ -250,6 +268,12 @@ Para crear un __vector__ utilizamos el comando ```c()```, de combinar. Puede ten
 ```{r}
 C <- c(1, 3, 4)
 C
+typeof(C)
+class(C)
+# ¿Qué longitud tiene?
+length(C)
+# ¿Cuáles son sus dimensiones?
+dim(C)
 ```
 
 sumarle  2 a cada elemento del __vector__ anterior
@@ -267,13 +291,28 @@ D
 
 ```1:3``` significa que queremos todos los números enteros desde 1 hasta 3. 
 
-crear un __vector__ que contenga las palabras: Ingreso, Variación, Indice
+__Reciclaje de vectores__
+
+Cuando los vectores involucrados en una operación son distinta dimensión, R recicla el vector de menor longitud para poder completar la operación.
+
 ```{r}
-E <- c("Carlos","Federico","Pedro")
+v1 <- c(10,20,30,40,50,60)
+v2 <- c(1,2,3)
+v3 <- v1 + v2
+v3
+# ¿Qué pasa si el vector más pequeño no es multiplo del más grande?
+v2 <- c(1,2,3,4)
+v3 <- v1 + v2
+v3
+```
+
+Puede contener datos tipo "character"
+```{r}
+E <- c("Julia","Hadley","Guido")
 E
 ```
 
-para acceder a algún elemento del vector, podemos buscarlo por su número de orden, entre ```[ ]```
+Para acceder a algún elemento del vector, podemos buscarlo por su número de orden, entre ```[ ]```
 
 ```{r}
 elemento2 <- E[2]
@@ -294,9 +333,49 @@ E[2] <- "Pablo"
 E
 ```
 
+### Matrices
+Son vectores que poseen dimensiones: número de columnas y filas
+
+```{r}
+# Esta forma de construir la matriz es por columnas por default
+M <- matrix(1:9, nrow = 3, ncol = 3)
+M
+typeof(M)
+class(M)
+# ¿Qué longitud tiene?
+length(M)
+# ¿Cuáles son sus dimensiones?
+dim(M)
+```
+También podemos reciclar vectores al construir una matriz
+
+Otra forma de construir una matriz es uniendo dos o más vectores
+
+```{r}
+v1 <- c(1,2,3)
+v2 <- c(4,5,6)
+# Creamos la matriz uniendo los dos vectores con rbind()
+M <- rbind(v1,v2)
+M
+typeof(M)
+class(M)
+# ¿Qué longitud tiene?
+length(M)
+# ¿Cuáles son sus dimensiones?
+dim(M)
+
+# ¿Qué pasa si queremos sumar una fila con otro tipo de datos?
+v3 <- c("a","b","c")
+M <- rbind(M,v3)
+M
+typeof(M)
+class(M)
+```
+
+
 ### Data Frames
 
-Un Data Frame es una tabla de datos, donde cada columna representa una variable, y cada fila una observación. Son el equivalente a las tablas de _STATA_ y _SPSS_
+Un Data Frame es una tabla de datos, donde cada columna representa una variable, y cada fila una observación. 
 
 Este objeto suele ser central en el proceso de trabajo, y suele ser la forma en que se cargan datos externos, así como la mayoría de los elementos intermedios, hasta aquello que exportemos 
 
