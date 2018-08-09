@@ -1,7 +1,7 @@
 ---
 title: "Clase 1. Introducción"
-author: "Guido Weksler y Diego Kozlowski"
-date: "6 de octubre 2017"
+author: "Diego Kozlowski y Juan Barriola"
+date: "18 de agosto 2018"
 output:
   html_notebook:
     toc: yes
@@ -220,7 +220,9 @@ typeof(A)
 
 La diferencia entre un _character_ y un _factor_ es que el último tiene solo algunos valores permitidos (levels), y se le puede dar un orden
 
+
 ```{r}
+
 A <- factor(c("R","Weka","SPSS","SAS","R"))
 A
 class(A)
@@ -437,6 +439,7 @@ superlista$DF$FECHA[2]
 Un __loop__ es una estructura de código que nos permite recorrer iterativamente un conjunto de comandos, variando algún elemento. Por ejemplo:
 
 ```{r}
+
 for(i in 1:10){
   Cuadrados<- i^2
   print(Cuadrados)
@@ -546,7 +549,7 @@ dataframe <- read.delim(file, header = TRUE, sep = "\t", quote = "\"", dec = "."
 Ejemplo. Levantar la base individual de EPH del 1er trimestre 2017
 ```{r}
 
-individual_t117 <- read.table('//NE18106/Trabajos/Curso R/Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
+individual_t117 <- read.table('Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
 individual_t117
 ```
 
@@ -727,7 +730,7 @@ install.packages(c("tidyverse","xlsx",'statar','reldist', 'ggthemes', 'ggrepel',
 - Ejecutar los siguientes comandos:
 
 ```{r, eval=FALSE}
-install.packages(rstudioapi) # SOLO LA PRIMERA VEZ
+#install.packages(rstudioapi) # SOLO LA PRIMERA VEZ
 
 script.dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
 

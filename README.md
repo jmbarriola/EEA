@@ -8,3 +8,7 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 ### Clase 1:
 
 - Introducción al entorno R.
+
+### Clase 2:
+
+- Tidyverse.
