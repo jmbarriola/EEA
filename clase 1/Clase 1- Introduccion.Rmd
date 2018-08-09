@@ -335,8 +335,9 @@ E[2] <- "Pablo"
 E
 ```
 
+
 ### Matrices
-Son vectores que poseen dimensiones: número de columnas y filas
+Son vectores que poseen dimensiones: número de columnas y filas. Todos sus datos deben ser de un mismo tipo
 
 ```{r}
 # Esta forma de construir la matriz es por columnas por default
@@ -356,8 +357,8 @@ Otra forma de construir una matriz es uniendo dos o más vectores
 ```{r}
 v1 <- c(1,2,3)
 v2 <- c(4,5,6)
-# Creamos la matriz uniendo los dos vectores con rbind()
-M <- rbind(v1,v2)
+# Creamos la matriz uniendo los dos vectores con cbind()
+M <- cbind(v1,v2)
 M
 typeof(M)
 class(M)
@@ -366,14 +367,17 @@ length(M)
 # ¿Cuáles son sus dimensiones?
 dim(M)
 
-# ¿Qué pasa si queremos sumar una fila con otro tipo de datos?
+```
+
+¿Qué pasa si queremos sumar una columna con otro tipo de datos?
+
+```{r}
 v3 <- c("a","b","c")
-M <- rbind(M,v3)
+M <- cbind(M,v3)
 M
 typeof(M)
 class(M)
 ```
-
 
 ### Data Frames
 
@@ -436,6 +440,8 @@ superlista$DF$FECHA[2]
 
 ## Loops, condicionales y funciones
 
+### Loops
+
 Un __loop__ es una estructura de código que nos permite recorrer iterativamente un conjunto de comandos, variando algún elemento. Por ejemplo:
 
 ```{r}
@@ -460,19 +466,38 @@ for(variable in unique(Datos$GRUPO)){
 
 ```
 
-Las __estructuras condiconales__ nos permites ejecutar código de forma condicional a que se cumpla determinada condición. 
+### Estructuras condicionales
 
+Las __estructuras condicionales__ nos permiten ejecutar código de forma condicional a que se cumpla determinada condición. 
 
 ```{r}
-A
-resultado <- ifelse(test = class(A) == "character", yes =  paste0("Esto es un caracter"),
-       no = paste0("Esto no era un caracter"))
+A <- 'Esto no es una cadena de caracteres'
+B <- factor('Esto no es una cadena de caracteres')
 
-resultado
+# Condicional simple
+if (class(A) == "character") {
+  paste0("No le crean, esto es una cadena de caracteres")
+} 
 
+# Condicional simple
+if (class(B) == "character") {
+  paste0("No le crean, esto es una cadena de caracteres")
+} 
+
+# Condicional exhaustivo
+if (class(B) == "character") {
+  paste0("No le crean, esto es una cadena de caracteres")
+} else {paste0("Esta chequeado, esto NO es una cadena de caracteres")}
 ```
 
-Otra función para condicionar la ejecución de una porción del código es ```if(condicion){codigo a ejecutar si se cumple la condición}```
+Una forma más sencilla y explícita es usar el comando ifelse. 
+
+```{r}
+ifelse(test = class(A) == "character", yes =  paste0("Esto es un caracter"),
+       no = paste0("Esto no era un caracter"))
+```
+
+### Funciones
 
 Las __funciones__ nos permiten automatizar todas aquellas partes del código que se repiten mucho. Una vez diseñadas, funcionan igual que cualquier comando. La facilidad para crear las funciones es en buena medida la explicación de que haya tantas contribuciones de usuarios a la expansión del lenguaje.
 
@@ -481,24 +506,71 @@ funcion_prueba <- function(a,b) {
   print(paste(a, b, sep = " "))
   
 }
-funcion_prueba(a = "soy la primera parte de un string.", b = "Y yo la segunda parte")
+
+funcion_prueba(a = "Soy la primera parte de un string.", b = "Y yo la segunda parte")
 
 ```
 
 También podemos asignar un valor por default.
 
 ```{r}
-funcion_prueba <- function(a = "Soy una primera parte default.",b) {
+funcion_prueba <- function(a = "Soy un default.",b) {
   print(paste(a, b, sep = " "))
   
 }
-funcion_prueba(b = "  A mi no me defaulteas")
+funcion_prueba(b = " A mi me tenes que asignar")
+
+funcion_prueba(a='Lo puedo asignar?', b='Obvio')
 
 ```
+
 
 Las funciones que creamos nosotros viven dentro del script donde se las define. Es decir, es necesario volver a correr la definición cada vez que la queremos utilizar. 
 
 Vale mencionar que __lo que ocurre en una función, queda en la función__ excepto que explícitamente pidamos que devuelva el resultado, con el comando ```print()``` o ```return()```
+
+**AYUDA**: En R-Studio se puede acceder a las definición de una función clickeando la función mientras apretamos CTRL
+
+**Funciones anónimas**
+
+Son funciones a las cuales no les asignamos un nombre. Esto suele ser útil para hacer funciones pequeñas dentro de otras funciones o estructuras más complejas.
+
+```{r}
+(function(x) x*2)(10)
+```
+
+### Funciones apply
+
+Los loops que vimos anteriormente ( __for__ loops) suelen lentos y costosos computacionalmente para grandes conjuntos de datos. 
+
+La función apply y sus variantes brindan una alternativa más eficiente para aplicar funciones sobre un conjunto de datos. 
+
+La función **apply** se describe de la siguiente manera: apply(X, MARGIN, FUN, ...). Sus parámetros son:
+
+- **X**: estructura de datos
+- **MARGIN**: parámetro que indica como se aplica la función. Con MARGIN=1 se aplica sobre filas y con MARGIN=2 se aplica sobre columnas 
+- **FUN**: función a aplicar
+
+```{r}
+# Armamos un dataframe con la recaudación en millones de dolares de la trilogía de Batman de Nolan
+USA  <- c(207,   535,   448)
+Mundo <- c(167,   470,   636)
+pelis  <-  c("Batman Begins", "Dark Knight", "Dark Knight Rises")
+
+batman <- data.frame(USA, Mundo, row.names = pelis)
+batman
+
+# ¿Cuanto recaudó cada película?
+apply(X=batman, MARGIN =1 , FUN=sum)
+# ¿Cuanto recaudó en promedio la trilogía por área?
+apply(X=batman, MARGIN =2 , FUN=mean)
+# ¿Cuanto recaudó cada película en pesos argentinos?
+apply(X=batman, MARGIN =1 , FUN=sum*30)
+# Funciones anónimas al rescate
+apply(X=batman, MARGIN =1 , FUN=function(x) sum(x)*28.6)
+```
+
+
 
 # Lectura y escritura de archivos
 
@@ -551,20 +623,6 @@ Ejemplo. Levantar la base individual de EPH del 1er trimestre 2017
 
 individual_t117 <- read.table('Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
 individual_t117
-```
-
-
- 
-aprovechemos esta primera tabla _en serio_ para introducir algunos comandos útiles para tener una mirada rápida de la base.
-
-
-```{r}
-
-#View(individual_t117)
-names(individual_t117)
-summary(individual_t117)[,c(8,10,31,133)]
-head(individual_t117)[,1:5]
-
 ```
 
 
@@ -691,7 +749,6 @@ Hay muchas ayudas, propias del programa, o de usuarios, que pueden ser de ayuda.
 
 - [stack overflow](https://stackoverflow.com/questions/tagged/r) conviene llegar desde google
 
-La _clave_ es aprender la terminología para googlear en ingles las dudas, y prestar atención a que las respuestas sean actuales (R es un lenguaje _vivo_)
 
 # Para la reunión 2:
 
