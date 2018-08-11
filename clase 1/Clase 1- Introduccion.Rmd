@@ -453,7 +453,10 @@ for(i in 1:10){
 
 ```
 
-esto se lee como : Para i, que toma los valores de 1 a 10: imprimí i.
+esto se lee como : Para i, que toma los valores de 1 a 10: 
+
+- Calcula el cuadrado de i y definilo como _Cuadrado_
+- Imprimí a _Cuadrado_
 
 También se puede tomar una lista de valores cualesquiera. Por ejemplo reutilizar datos de un dataframe:
 
@@ -495,7 +498,9 @@ Una forma más sencilla y explícita es usar el comando ifelse.
 ```{r}
 ifelse(test = class(A) == "character", yes =  paste0("Esto es un caracter"),
        no = paste0("Esto no era un caracter"))
+
 ```
+
 
 ### Funciones
 
@@ -551,7 +556,7 @@ La función **apply** se describe de la siguiente manera: apply(X, MARGIN, FUN, 
 - **MARGIN**: parámetro que indica como se aplica la función. Con MARGIN=1 se aplica sobre filas y con MARGIN=2 se aplica sobre columnas 
 - **FUN**: función a aplicar
 
-```{r}
+```{r, error = TRUE}
 # Armamos un dataframe con la recaudación en millones de dolares de la trilogía de Batman de Nolan
 USA  <- c(207,   535,   448)
 Mundo <- c(167,   470,   636)
@@ -619,9 +624,10 @@ Es importante tener en cuenta:
 dataframe <- read.delim(file, header = TRUE, sep = "\t", quote = "\"", dec = ".", fill = TRUE, comment.char = "", ...) 
 ```
 Ejemplo. Levantar la base individual de EPH del 1er trimestre 2017
+
 ```{r}
 
-individual_t117 <- read.table('Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
+individual_t117 <- read.table('../Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
 individual_t117
 ```
 

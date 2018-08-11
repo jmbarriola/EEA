@@ -208,3 +208,337 @@ iris_horizontal <- iris_vertical %>%
 iris_horizontal
 ```
 
+
+
+# Gráficos
+
+### Gráficos Básicos en R
+
+Rbase  tiene algunos comandos genéricos para realizar gráficos, que se adaptan al tipo de información que se le pide graficar, por ejemplo:
+
+- plot()
+- hist()
+
+
+
+```{r}
+iris
+
+plot(iris)
+plot(iris$Sepal.Length,type = "p")
+plot(iris$Sepal.Length,type = "l")
+plot(iris$Sepal.Length,type = "b")
+hist(iris$Sepal.Length, col = "lightsalmon1", main = "Histograma")
+
+```
+
+
+Para guardar los gráficos
+
+```{r}
+png("Grafico1.png")
+plot(iris$Sepal.Length,type = "b")
+dev.off()
+
+```
+
+
+La función ```png()``` _abre el dispositivo de imagen_, luego podemos hacer los gráficos, y a continuación, con ```dev.off()``` se _cierra el dispositivo_ y se graban los gráficos. 
+
+Los gráficos del R base son útiles para escribir de forma rápida y obtener alguna información mientras trabajamos. Muchos paquetes estadísticos permiten mostrar los resultados de forma gráfica con el comando plot (por ejemplo, las regresiones lineales ```lm()```).       
+ 
+Sin embargo, existen librerías mucho mejores para crear gráficos de nivel de publicación. La más importante es __ggplot2__, que a su vez tiene extensiones mediante otras librerías.
+
+
+#[Ggplot2](http://ggplot2.tidyverse.org/reference/)
+
+
+ggplot tiene su sintaxis propia. La idea central es pensar los gráficos como una sucesión de capas, que se construyen una a la vez.    
+
+- El operador __```+```__ nos permite incorporar nuevas capas al gráfico.
+
+- El comando ```ggplot()``` nos permite definir los __datos__ y las __variables__ (x,y,color,forma,etc). 
+
+- Las sucesivas capas nos permiten definir:
+    - Uno o más tipos de gráficos (de columnas, ```geom_col()```, de línea, ```geom_line()```, de puntos,```geom_point()```, boxplot, ```geom_boxplot()```)
+    - Títulos ```labs()```
+    - Estilo del gráfico ```theme()```
+    - Escalas de los ejes ```scale_y_continuous```,```scale_x_discrete``` 
+    - División en subconjuntos ```facet_wrap()```,```facet_grid()```
+
+ggplot tiene __muchos__ comandos, y no tiene sentido saberlos de memoria, es siempre útil reutilizar gráficos viejos y tener a mano el [machete](https://www.rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf).
+
+
+
+```{r}
+library(ggplot2)
+library(ggthemes)  # estilos de gráficos
+library(ggrepel)   # etiquetas de texto más prolijas que las de ggplot
+library(scales)    # tiene la función 'percent()'
+
+
+ggplot(data = iris, aes(x = Sepal.Length, fill = Species))+
+  geom_histogram(alpha=0.75, binwidth = .5)+
+  facet_wrap(~Species)+
+  labs(title = "Histograma por especie")+
+  theme(legend.position = 'none')
+```
+
+
+Lo útil de hacer gráficos en R, en lugar de por ejemplo excel, es que podemos hacer uso de más dimensiones, por ejemplo:
+
+- Gráficos que necesitan la información a nivel de microdatos. __puntos__,  __boxplots__, __Kernels__, etc.
+- Abrir el mismo gráfico según alguna variable discreta: ```facet_wrap()```
+- Parametrizar otras variables, para aumentar la dimensionalidad del gráficos.
+    - [__color__](http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf) ```color = ```
+    - __relleno__```fill = ```
+    - __forma__ ```shape = ```
+    - __tamaño__ ```size = ```
+    - __transparencia__ ```alpha = ```
+
+Esto permite tener, en el plano, gráficos de muchas dimensiones de análisis
+
+Cuando queremos utilizar estos parámetros para representar una variable, los definimos __dentro del aes()__, ```aes(... color = ingresos)```, cuando queremos simplemente mejorar el diseño, se asignan por fuera, o dentro de cada tipo de gráficos, ```geom_col(color = 'green')```.
+
+
+__levanto una base de microdatos de EPH para graficar__
+
+```{r}
+
+Individual_t117 <- read.table(paste0(bases.dir,"../Fuentes/usu_individual_t117.txt"),
+                              sep=";", dec=",", header = TRUE, fill = TRUE)
+```
+
+
+### Boxplots
+
+Hacemos un procesamiento simple: Sacamos los ingresos iguales a cero y las no respuestas de nivel educativo.    
+Las variables sexo( CH04 ) y Nivel educativo están codificadas como números, y el R las entiende como numéricas.
+
+
+
+Es importante que las variables sean del tipo que conceptualmente les corresponde (el nivel educativo es una variable categórica, no continua), para que el ggplot pueda graficarlo correctamente. 
+
+```{r}
+
+ggdata <- Individual_t117 %>% 
+  filter(P21>0, !is.na(NIVEL_ED)) %>% 
+  mutate(NIVEL_ED = as.factor(NIVEL_ED),
+         CH04     = as.factor(CH04))
+```
+
+
+
+
+si queremos hacer un boxplot del ingreso para cada nivel educativo, asignamos esta variable a _x, group y fill_
+```{r}
+
+ggplot(ggdata, aes(x = NIVEL_ED, y = P21, group = NIVEL_ED, fill = NIVEL_ED )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))
+```
+
+Si queremos agregar la dimensión _sexo_, podemos hacer un ```facet_wrap()```
+
+```{r}
+
+ggplot(ggdata, aes(x= NIVEL_ED, y = P21, group = NIVEL_ED, fill = NIVEL_ED )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))+
+  facet_wrap(~ CH04, labeller = "label_both")
+```
+
+En este gráfico, el foco de atención sigue puesto en las diferencias de nivel educativo, pero _neutralizamos_ el efecto de la variable sexo.     
+
+Si lo que queremos hacer es poner el foco de atención en las diferencias por sexo, _neutralizamos_ el efecto del nivel educativo, facetiando por nivel educativo.
+
+
+```{r}
+ggplot(ggdata, aes(x= CH04, y = P21, group = CH04, fill = CH04 )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))+
+  facet_wrap(~ NIVEL_ED, labeller = "label_both")
+
+```
+
+
+### Kernels
+
+Podemos hacer una nueva versión del gráfico 2. Utilizando un procesamiento similar al que hicimos antes.
+
+```{r warning=FALSE}
+
+datagraf <-Individual_t117 %>% 
+  select(REGION,P47T,T_VI, TOT_P12, P21 , PONDII, CH04) %>% 
+  filter(!is.na(P47T), P47T > 0 ) %>% 
+  mutate(REGION             = case_when(REGION == 1    ~ 'GBA',
+                                        REGION == 40   ~ 'NOA',
+                                        REGION == 41   ~ 'NEA',
+                                        REGION == 42   ~ 'Cuyo',
+                                        REGION == 43   ~ 'Peampeana',
+                                        REGION == 44   ~ 'Patagonia',
+                                        FALSE          ~ 'otro'),
+         ingreso_laboral    = as.numeric(TOT_P12 + P21),
+         ingreso_no_laboral = as.numeric(T_VI),
+         CH04               = case_when(CH04 == 1 ~ "Varon",
+                                        CH04 == 2 ~ "Mujer",
+                                        FALSE     ~ "Otro") ) %>% 
+  gather(., key = Tipo_ingreso, Ingreso, c((ncol(.)-1):ncol(.)))
+datagraf  
+```
+
+Con los Kernels, no necesitamos dividir a la población en deciles, porque podemos tener una mirada completa de la forma de la distribución.    
+
+Para este gráfico, quiero eliminar los ingresos = 0
+
+```{r}
+datagraf2 <- datagraf %>% filter( Ingreso !=0)
+  
+  
+ggplot(datagraf2, aes(
+  x = Ingreso,
+  weights = PONDII,
+  group = Tipo_ingreso,
+  fill = Tipo_ingreso)) +
+  geom_density(alpha=0.7,adjust =2)+
+  labs(x="Distribución del ingreso", y="",
+       title=" Total según tipo de ingreso y género", 
+       caption = "Fuente: Encuesta Permanente de Hogares")+
+  scale_x_continuous(limits = c(0,50000))+
+  theme_tufte()+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom",
+        plot.title      = element_text(size=12))+
+  facet_wrap(~ CH04, scales = "free")
+
+ggsave(filename = paste0(resultados.dir, "Kernel_1.png"),scale = 2)
+
+```
+
+En este tipo de gráficos, importa mucho qué variable se utiliza para _facetear_ y qué variable para agrupar, ya que la construcción de la distribución es diferente. 
+
+```{r}
+ggplot(datagraf2, aes(
+  x = Ingreso,
+  weights = PONDII,
+  group = CH04,
+  fill = CH04)) +
+  geom_density(alpha=0.7,adjust =2)+
+  labs(x="Distribución del ingreso", y="",
+       title=" Total según tipo de ingreso y género", 
+       caption = "Fuente: Encuesta Permanente de Hogares")+
+  scale_x_continuous(limits = c(0,50000))+
+  theme_tufte()+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom",
+        plot.title      = element_text(size=12))+
+  facet_wrap(~Tipo_ingreso, scales = "free")
+
+ggsave(filename = paste0(resultados.dir, "Kernel_1.png"),scale = 2)
+
+```
+
+
+El eje y no tiene demasiada interpretabilidad en los Kernel, porque hace a la forma en que se construyen las distribuciones. 
+
+
+### Tendencia
+
+
+Para realizar estos gráficos, vamos a modificar un poco los datos:
+
+- filtramos los ingresos iguales a 0.
+- eliminamos las no respuestas de nivel educativo y las personas con educación especial.
+- eliminamos las respuestas de tipo de establecimiento = 'otros'.
+- recodificamos las variables para que tengan nombres más sugestivos:
+    - __Nivel educativo__ además la convertimos a factor, porque queremos explicitarle el orden de los valores con ```levels()```. El "\\n"" es un _caracter especial_ que permite que el string continúe en la siguiente línea.
+    - Sexo.
+    - Tipo de establecimiento.
+    
+    
+```{r }
+ggdata <- Individual_t117 %>% 
+  filter(P21>0,
+         !is.na(NIVEL_ED),
+         NIVEL_ED!=7, 
+         PP04A !=3) %>% 
+  mutate(NIVEL_ED = factor(case_when(NIVEL_ED == 1  ~ 'Primaria \n Incompleta', # '\n' significa carriage return, o enter
+                                     NIVEL_ED == 2  ~ 'Primaria \n Completa',
+                                     NIVEL_ED == 3  ~ 'Secundaria \nIncompleta',
+                                     NIVEL_ED == 4  ~ 'Secundaria \nCompleta',
+                                     NIVEL_ED == 5  ~ 'Superior \nUniversitaria \nIncompleta',
+                                     NIVEL_ED == 6  ~ 'Superior \nUniversitaria \nCompleta',
+                                     FALSE          ~ 'Otro'),
+                           levels= c('Primaria \n Incompleta',
+                                     'Primaria \n Completa',
+                                     'Secundaria \nIncompleta',
+                                     'Secundaria \nCompleta',
+                                     'Superior \nUniversitaria \nIncompleta',
+                                     'Superior \nUniversitaria \nCompleta')),
+         Sexo     = case_when(CH04 == 1 ~ 'Varón',
+                              CH04 == 2 ~ 'Mujer'),
+         Establecimiento    = case_when(PP04A == 1 ~ 'Estatal',
+                                        PP04A == 2 ~ 'Privado',
+                                        FALSE      ~ 'Otro'))
+
+ggdata
+```
+
+Para graficar un suavizado de las series, se utiliza la función [```geom_smooth()```](http://ggplot2.tidyverse.org/reference/geom_smooth.html). Con suavizado nos referimos al gráfico de un modelo realizado sobre los datos, que estima el valor en el punto x,y (para el grupo). Las regresiones lineales son un ejemplo de esto, aunque no el único, ni el que viene por default.
+
+```{r fig.height=5, fig.width=8}
+ggplot(ggdata, aes(CH06, P21, colour = Sexo, shape = Sexo, alpha = P21))+
+  geom_smooth() + 
+  labs(
+    x = 'Edad',
+    y = 'ingreso',
+    title = 'Ingreso por ocupación principal',
+    subtitle = 'Según edad, nivel educativo y sexo') +
+  theme_minimal()+
+  scale_y_continuous(labels = comma)+
+  scale_alpha(guide = FALSE)+
+  facet_grid(.~NIVEL_ED)
+```
+
+
+Si corremos el comando ```geom_smooth()```  por default, nos advierte que esta utilizando el método GAM, de [general additive models](https://m-clark.github.io/docs/GAM.html).      
+
+el __sombreado gris__ que envuelve cada línea es el intervalo de confianza de dicho punto (95% por default).
+
+También podemos utilizar métodos lineales, agregando el parámetro ```method = 'lm'```. Haciendo esto, el gráfico muestra una regresión lineal simple. Si queremos otro tipo de regresión lineal, le podemos explicitar la fórmula.    
+En el ejemplo siguiente, utilizamos la formula $y = \beta_0 +\beta_1x +\beta_2 x^2 $.
+
+```{r fig.height=5, fig.width=8}
+
+ggplot(ggdata, aes(CH06, P21, colour = Sexo, weight = PONDIIO)) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2)) +
+  labs(x = 'Edad',
+       y = 'ingreso',
+       title = 'Regresion cuadrática del Ingreso por ocupación principal respecto de la Edad',
+       subtitle = 'Según Nivel educativo y sexo') +
+  theme_minimal()+
+  facet_grid(. ~ NIVEL_ED)
+```
+
+
+Si quisiéramos, además de ver la relación entre ingreso, Edad, Sexo y Nivel educativo, incorporar el tipo de establecimiento,público o privado. Podemos facetear el gráfico por dos variables en lugar de una, lo que crea una __matriz de gráficos__ según los cruces.
+
+```{r fig.height=5, fig.width=8}
+ggplot(ggdata, aes(CH06, P21, colour = Establecimiento, weight = PONDIIO)) +
+  geom_smooth(method = "lm") +
+  labs(
+  x = 'Edad',
+  y = 'ingreso',
+  title = 'Tendencia del ingreso por ocupación principal',
+  subtitle = 'Según edad, nivel educativo, sexo y tipo de establecimiento') +
+  theme_minimal()+
+  facet_grid(Sexo ~ NIVEL_ED)
+
+ggsave(filename = paste0(resultados.dir, "regresion lineal.png"),scale = 2)
+
+```
+
+
+
+
+
