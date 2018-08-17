@@ -24,11 +24,14 @@ apply(X=df, MARGIN =2 , FUN=sum)
 apply(X=df, MARGIN =2 , FUN=mean)
 #c) ¿Cual es la mediana del ingreso en pesos argentinos?
 apply(X=df, MARGIN =2 , FUN=function(x) median(x)*30.4)
-
 # 3) Crear el dataset con las dos columnas
 df_indice <- df[,c(3, 5)]
 # Crear el indice
-apply(X=df_indice, MARGIN =1 , FUN=sum)
+ilit_murd <- apply(X=df_indice, MARGIN =1 , FUN=sum)
+
+#Para buscar los máximos y mínimos armo una máscara booleana
+ilit_murd[ilit_murd==max(ilit_murd)]
+ilit_murd[ilit_murd==min(ilit_murd)]
 
 ########### EJERCICIOS FINALES ##########################
 
@@ -87,17 +90,18 @@ Sumatoria_enteros<- function(x){
 }
 
 # - Levantar la base Individual del 1er trimestre de 2017, de la EPH
-individual_t117 <- read.table('//NE18106/Trabajos/Curso R/clase 1/usu_individual_t117.txt',
+
+individual_t117 <- read.table("../Fuentes/usu_individual_t117.txt",
                               sep=";",
                               dec=",",
                               header = TRUE,
                               fill = TRUE)
 
 # - Guardar la base como un archivo de extensión .RDS
-saveRDS(individual_t117,"//NE18106/Trabajos/Curso R/clase 1/individual_t117.RDS")
+saveRDS(individual_t117,"../Fuentes/individual_t117.RDS")
 
 # - Volver a levantar la base, pero como .RDS y asignarla conel nombre _BaseRDS_ ¿tarda más o menos?
-BaseRDS <- readRDS("//NE18106/Trabajos/Curso R/clase 1/individual_t117.RDS")
+BaseRDS <- readRDS("../Fuentes/individual_t117.RDS")
 
 # - Levantar del Excel llamado CANASTAS que se encuentra en la carpeta de Fuentes, la hoja "CBT".
 ## y Definirla como Hoja_CBT. Pueden usar la función _read.xlsx_ de la librería __xlsx__ 
@@ -105,37 +109,16 @@ BaseRDS <- readRDS("//NE18106/Trabajos/Curso R/clase 1/individual_t117.RDS")
 library(xlsx)
 library(readxl)
 
-Hoja_CBT_1 <- read.xlsx(file = "//NE18106/Trabajos/Curso R/Fuentes/CANASTAS.xls",sheetName = "CBT")
+Hoja_CBT_1 <- read.xlsx(file = "../Fuentes/CANASTAS.xls",sheetName = "CBT")
 class(Hoja_CBT_1)
 
-Hoja_CBT_2 <- read_excel(path = "//NE18106/Trabajos/Curso R/Fuentes/CANASTAS.xls",sheet = "CBT")
+Hoja_CBT_2 <- read_excel(path = "../Fuentes/CANASTAS.xls",sheet = "CBT")
 class(Hoja_CBT_2)
 # - Levantar el mismo Excel, utilizando un Objeto que contenga el directorio del arhico a levantar.
 ##  chequear con ```dir.exist()``` que lo creamos bien (¿no funcionó? pista: /\\)
 ##  Levantar el mismo excel utilizando los nombres de directorio como objetos.
 
-fuentes.dir <- "//NE18106/Trabajos/Curso R/Fuentes/" 
+fuentes.dir <- "../Fuentes/" 
 dir.exists(fuentes.dir)
 Hoja_CBT <- read.xlsx(file = paste0(fuentes.dir,"CANASTAS.xls"),sheetName = "CBT",
                       encoding = "UTF-8")
-
-
-# - ejecutar los siguientes comandos:
-
-script.dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
-
-script.dir
-
-bases.dir  <-  paste0(dirname(script.dir),"/Fuentes/")
-
-bases.dir
-
-dir.create(bases.dir)
-
-resultados.dir <- paste0(dirname(script.dir),"/Resultados/")
-
-resultados.dir
-
-dir.create(resultados.dir)
-
-dir.exists(bases.dir)

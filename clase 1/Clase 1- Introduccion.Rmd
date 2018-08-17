@@ -3,11 +3,11 @@ title: "Clase 1. Introducción"
 author: "Diego Kozlowski y Juan Barriola"
 date: "18 de agosto 2018"
 output:
-  html_document:
-    toc: yes
   html_notebook:
     toc: yes
     toc_float: yes
+  html_document:
+    toc: yes
   pdf_document:
     toc: yes
 ---
@@ -163,7 +163,7 @@ tabla[2,3] <- funcion(A=a, B=b, C=c)
 
 # Tipos de datos y estructuras de datos:
 
-Los tipos de datos son una clase de valores que se pueden construir para representar información. Las estructuras de datos es una forma abstracta compleja de representar y guardar información 
+Los tipos de datos son una clase de valores que se pueden construir para representar información. Las estructuras de datos son formas de representar y guardar información 
 
 
 ## Tipos de datos
@@ -225,12 +225,11 @@ La diferencia entre un _character_ y un _factor_ es que el último tiene solo al
 
 
 ```{r}
-
 A <- factor(c("R","Weka","SPSS","SAS","R"))
 A
 class(A)
 typeof(A)
-# ¿Cuále son sus niveles?
+# ¿Cuáles son sus niveles?
 levels(A)
 # ¿Está ordenado?
 is.ordered(A)
@@ -280,6 +279,7 @@ length(C)
 # ¿Cuáles son sus dimensiones?
 dim(C)
 ```
+
 
 sumarle  2 a cada elemento del __vector__ anterior
 
@@ -472,9 +472,32 @@ for(variable in unique(Datos$GRUPO)){
 
 ```
 
+__Bonus Track:__ Podemos agregar una barra de progreso en nuestro loop
+
+\\ 
+En un Rnotebook no sirve de mucho, pero en un script puede ser útil para loop largos. Sobretodo, es útil cuando tengamos loops adentro de funciones
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+iterator <- c(1:10)
+pb <- txtProgressBar(min = 0, max = length(iterator), style = 3)  
+stepi =1
+for(i in iterator){
+  setTxtProgressBar(pb, stepi)
+  stepi = stepi+1
+  Cuadrados<- i^2
+  print(Cuadrados)
+}
+close(pb)
+
+```
+
+
+
+
 ## Estructuras condicionales
 
-Las __estructuras condicionales__ nos permiten ejecutar código de forma condicional a que se cumpla determinada condición. 
+Las __estructuras condicionales__ nos permiten definir flujos de ejecución del código, indicando qué se debe correr en cada circunstancia.
 
 ```{r}
 A <- 'Esto no es una cadena de caracteres'
@@ -499,8 +522,8 @@ if (class(B) == "character") {
 Una forma más sencilla y explícita es usar el comando ifelse. 
 
 ```{r}
-ifelse(test = class(A) == "character", yes =  print("Esto es un caracter"),
-       no = print("Esto no era un caracter"))
+ifelse(test = class(A) == "character", yes =  "Esto es un caracter",
+       no = "Esto no era un caracter")
 
 ```
 
@@ -689,7 +712,7 @@ Podemos utilizar la librería _haven_, y los comandos:
 - read_sas()
 
 ## Encoding
-Tanto a la hora de leer y escribir archivos, como al trabajar un mismo script desde distintas computadoras, debemos ser cuidadosos con el _encoding_ seteado. El _encoding_ es el sistema mediante el cual el sistema interpreta los caracteres del lenguaje natural. Hay muchos _encodings_ diferentes, que interpretan distinto algunos caracteres, como tildes y signos de puntuación.     
+Tanto a la hora de leer y escribir archivos, como al trabajar un mismo script desde distintas computadoras, debemos ser cuidadosos con el _encoding_ seteado. El _encoding_ es la forma mediante la cual el sistema interpreta los caracteres del lenguaje natural. Hay muchos _encodings_ diferentes, que interpretan distinto algunos caracteres, como tildes y signos de puntuación.     
 Por ende, si el _encoding_ seteado no es el mismo que el de nuestro script/tabla pueden generarse errores. En medida de lo posible, al escribir nuestros scripts es recomendable evitar estos caracteres. 
 
 R tiene por default el encoding __"ISO-8859-1"__, sin embargo el más habitual en América Latina es __"UTF-8"__. 
@@ -713,7 +736,7 @@ carpeta_fuentes    <- paste("C:/Users/.../Documents/R/fuentes/")
 carpeta_resultados <- paste("C:/Users/.../Documents/R/resultados/")
 ```
 
-Es importante notar que se utiliza la barra ```/``` en lugar de ```\``` (que sale de copiar y pegar el directorio)
+Es importante notar que se utiliza la barra ```/``` en lugar de ```\``` (que sale de copiar y pegar el directorio en windows)
 
 el nombre completo del archivo puede ser 
 ```
@@ -783,14 +806,6 @@ Hay muchas ayudas, propias del programa, o de usuarios, que pueden ser de ayuda.
 - [stack overflow](https://stackoverflow.com/questions/tagged/r) conviene llegar desde google
 
 
-# Para la reunión 2:
-
-instalar los siguientes paquetes:
-
-```
-install.packages(c("tidyverse","xlsx",'statar','reldist', 'ggthemes', 'ggrepel', 'scales', 'ggjoy', 'rstudioapi','questionr', 'alluvial'))
-```
-
 # Ejercicios para practicar
 
 - Crear un OBJETO llamado _OBJETO_ definido como el resultado de la suma: 5 + 6
@@ -817,30 +832,3 @@ install.packages(c("tidyverse","xlsx",'statar','reldist', 'ggthemes', 'ggrepel',
 
 - Levantar el mismo Excel, utilizando un Objeto que contenga el directorio del archivo a levantar.
     - Chequear con ```dir.exist()``` que lo creamos bien (¿no funcionó? pista: /\\)
-- Ejecutar los siguientes comandos:
-
-```{r, eval=FALSE}
-#install.packages(rstudioapi) # SOLO LA PRIMERA VEZ
-
-script.dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
-
-script.dir
-
-bases.dir  <-  paste0(dirname(script.dir),"/Fuentes/")
-
-bases.dir
-
-dir.create(bases.dir)
-
-resultados.dir <- paste0(dirname(script.dir),"/Resultados/")
-
-resultados.dir
-
-dir.create(resultados.dir)
-
-dir.exists(bases.dir)
-```
-
-¿qué sucedió? Explicar que realiza cada una de las líneas.
-
-
