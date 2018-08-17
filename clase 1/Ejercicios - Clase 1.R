@@ -1,4 +1,37 @@
 ####Ejercicios Clase 1 ####
+
+##Ejercicio 1##
+
+funcion_ejercicio_1 <- function(matriz) {
+  # Obtengo las dimensiones
+  print(dim(matriz))
+  # Chequeo si el primer elemento es par
+  primer_elem <- matriz[1,1]
+  if (primer_elem %% 2 == 0) {
+    print('El primer elemento es par')
+  }
+  else{print('El primer elemento no es par')}
+}
+
+## Ejercicio 2##
+ 
+# 1) Crear un dataframe con el dataset de R: state.x77
+df <- state.x77
+
+#2)a) ¿Cuál es la población total de Estados Unidos?
+apply(X=df, MARGIN =2 , FUN=sum)
+#b) ¿Cuál es la media de la expectativa de vida?
+apply(X=df, MARGIN =2 , FUN=mean)
+#c) ¿Cual es la mediana del ingreso en pesos argentinos?
+apply(X=df, MARGIN =2 , FUN=function(x) median(x)*30.4)
+
+# 3) Crear el dataset con las dos columnas
+df_indice <- df[,c(3, 5)]
+# Crear el indice
+apply(X=df_indice, MARGIN =1 , FUN=sum)
+
+########### EJERCICIOS FINALES ##########################
+
 rm(list=ls())
 
 # - Crear un OBJETO llamado _OBJETO_ definido como el resultado de la suma: 5 + 6

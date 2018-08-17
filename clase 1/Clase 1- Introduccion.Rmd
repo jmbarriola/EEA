@@ -3,11 +3,11 @@ title: "Clase 1. Introducción"
 author: "Diego Kozlowski y Juan Barriola"
 date: "18 de agosto 2018"
 output:
+  html_document:
+    toc: yes
   html_notebook:
     toc: yes
     toc_float: yes
-  html_document:
-    toc: yes
   pdf_document:
     toc: yes
 ---
@@ -52,7 +52,7 @@ El _entorno_ más cómodo para utilizar el _lenguaje_ __R__ es el _programa_ __R
 
 
 
-# Lógica sintáctica.
+# Lógica sintáctica
 
 ## Definición de objetos
 
@@ -131,6 +131,9 @@ C
 #multiplicacion
 D <- 6*2.5
 D
+# Modulo
+E <- 7%%2
+E
 ```
 ## Caracteres especiales
 
@@ -158,12 +161,12 @@ Ejemplo: si queremos definir al elemento de la fila 2 y columna 3 de una _tabla_
 tabla[2,3] <- funcion(A=a, B=b, C=c)
 ```
 
-## Tipos de datos y estructuras de datos:
+# Tipos de datos y estructuras de datos:
 
 Los tipos de datos son una clase de valores que se pueden construir para representar información. Las estructuras de datos es una forma abstracta compleja de representar y guardar información 
 
 
-### Tipos de datos
+## Tipos de datos
 Los datos tienen distintos _tipos_:   
 
 * El comando class() identifica el tipo de un objeto desde una perspectiva de programación orientada a objetos en R. Podemos redifinir la clase de un objeto
@@ -179,7 +182,7 @@ typeof(A)
 
 Tratemos de cambiar la clase y el tipo de nuestro objeto
 
-```{r}
+```{r error=TRUE}
 class(A) <- "nueva_clase"
 class(A)
 typeof(A) <- "nuevo_tipo"
@@ -261,7 +264,7 @@ class(A)
 typeof(A)
 ```
 
-### Estructuras de datos
+## Estructuras de datos
 
 ### Vectores
 
@@ -438,9 +441,9 @@ Para acceder un elemento de una lista, podemos utilizar el operador __```$```__,
 superlista$DF$FECHA[2]
 ```
 
-## Loops, condicionales y funciones
+# Loops, condicionales y funciones
 
-### Loops
+## Loops
 
 Un __loop__ es una estructura de código que nos permite recorrer iterativamente un conjunto de comandos, variando algún elemento. Por ejemplo:
 
@@ -469,7 +472,7 @@ for(variable in unique(Datos$GRUPO)){
 
 ```
 
-### Estructuras condicionales
+## Estructuras condicionales
 
 Las __estructuras condicionales__ nos permiten ejecutar código de forma condicional a que se cumpla determinada condición. 
 
@@ -479,30 +482,30 @@ B <- factor('Esto no es una cadena de caracteres')
 
 # Condicional simple
 if (class(A) == "character") {
-  paste0("No le crean, esto es una cadena de caracteres")
+  print("No le crean, esto es una cadena de caracteres")
 } 
 
 # Condicional simple
 if (class(B) == "character") {
-  paste0("No le crean, esto es una cadena de caracteres")
+  print("No le crean, esto es una cadena de caracteres")
 } 
 
 # Condicional exhaustivo
 if (class(B) == "character") {
-  paste0("No le crean, esto es una cadena de caracteres")
-} else {paste0("Esta chequeado, esto NO es una cadena de caracteres")}
+  print("No le crean, esto es una cadena de caracteres")
+} else {print("Esta chequeado, esto NO es una cadena de caracteres")}
 ```
 
 Una forma más sencilla y explícita es usar el comando ifelse. 
 
 ```{r}
-ifelse(test = class(A) == "character", yes =  paste0("Esto es un caracter"),
-       no = paste0("Esto no era un caracter"))
+ifelse(test = class(A) == "character", yes =  print("Esto es un caracter"),
+       no = print("Esto no era un caracter"))
 
 ```
 
 
-### Funciones
+## Funciones
 
 Las __funciones__ nos permiten automatizar todas aquellas partes del código que se repiten mucho. Una vez diseñadas, funcionan igual que cualquier comando. La facilidad para crear las funciones es en buena medida la explicación de que haya tantas contribuciones de usuarios a la expansión del lenguaje.
 
@@ -536,6 +539,22 @@ Vale mencionar que __lo que ocurre en una función, queda en la función__ excep
 
 **AYUDA**: En R-Studio se puede acceder a las definición de una función clickeando la función mientras apretamos CTRL
 
+**Ejercicio 1**
+
+Realicen una función que:
+
+* Toma como argumento una matriz compuesta por números
+* Debe imprimir las dimensiones de la matriz
+* Debe indicar si el primer elemento de la matriz es un número par
+* Para la matriz m1 debe imprimir que las dimensiones son 2,2 y que el primer elemento no es par
+* Para la matriz m2 debe imprimir que las dimensiones son 3,2 y que el primer elemento es par
+
+```{r}
+m1 <- matrix(c(9,2,4,8), nrow = 2, ncol = 2)
+m2 <- matrix(c(10,1,5,7,9,17), nrow = 3, ncol = 2)
+```
+
+
 **Funciones anónimas**
 
 Son funciones a las cuales no les asignamos un nombre. Esto suele ser útil para hacer funciones pequeñas dentro de otras funciones o estructuras más complejas.
@@ -544,7 +563,7 @@ Son funciones a las cuales no les asignamos un nombre. Esto suele ser útil para
 (function(x) x*2)(10)
 ```
 
-### Funciones apply
+## Funciones apply
 
 Los loops que vimos anteriormente ( __for__ loops) suelen lentos y costosos computacionalmente para grandes conjuntos de datos. 
 
@@ -570,11 +589,19 @@ apply(X=batman, MARGIN =1 , FUN=sum)
 # ¿Cuanto recaudó en promedio la trilogía por área?
 apply(X=batman, MARGIN =2 , FUN=mean)
 # ¿Cuanto recaudó cada película en pesos argentinos?
-apply(X=batman, MARGIN =1 , FUN=sum*30)
+apply(X=batman, MARGIN =1 , FUN=sum*30.4)
 # Funciones anónimas al rescate
-apply(X=batman, MARGIN =1 , FUN=function(x) sum(x)*28.6)
+apply(X=batman, MARGIN =1 , FUN=function(x) sum(x)*30.4)
 ```
 
+**Ejercicio 2**
+
+1) Crear un dataframe con el dataset de R: state.x77
+2) Responder:
+a) ¿Cuál es la población total de Estados Unidos?
+b) ¿Cuál es la media de la expectativa de vida?
+c) ¿Cual es la mediana del ingreso en pesos argentinos?
+3) Seleccionar las variables illiteracy y Murder. Crear un indice sumando ambos porcentajes y encontrar cual es el mejor y cual es el peor Estado según este índice 
 
 
 # Lectura y escritura de archivos
@@ -628,7 +655,7 @@ Ejemplo. Levantar la base individual de EPH del 1er trimestre 2017
 ```{r}
 
 individual_t117 <- read.table('../Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
-individual_t117
+head(individual_t117)
 ```
 
 
@@ -705,7 +732,7 @@ tabla <- read.xlsx(file = archivo_datos,sheetName = "hoja 1") #como es una varia
 
 Si bien excede los alcances de este curso, dejamos un chunk de código que puede resultar sumamente útil para crear un directorio de trabajo para un proyecto nuevo.
 
-```{r}
+```{r eval=FALSE}
 #install.packages(rstudioapi)
 script.dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
 bases.dir  <-  paste0(dirname(script.dir),"/Fuentes/")
