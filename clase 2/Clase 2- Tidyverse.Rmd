@@ -541,4 +541,30 @@ ggsave(filename = paste0(resultados.dir, "regresion lineal.png"),scale = 2)
 
 
 
+# Ejercicios para practicar
+
+El Objetivo de estos ejercicios es practicar el uso del $tidyverse$ para la manipulación de los datos, y $ggplot$ para graficar la información. En las consignas, se propone de manera general qué variables se quiere observar. Ustedes deberán levantar y procesar los datos de la Encuesta Permanente de Hogares, y gráficarlos como consideren que mejor se aprecia la relación entre las variables.     
+
+Una __ayuda__ es utilizar el [diseño de registro](../Fuentes/EPH_registro_2_trim_2016.pdf) para codificar las variables
+
+
+__ejercicios__
+
+- Graficar la distribución del ingreso por ocupación principal (p21) según categoría ocupacional (CAT_OCUP). (opcional: utilizar la librería [ggridges](https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html))
+
+- Incorporar en el gráfico anterior la condición de precariedad laboral (PP07H).
+
+- Quedarse sólo con los asalariados (CAT_OCUP = 3), y graficar la relación entre ingreso por ocupación principal(p21), precariedad laboral (PP07H) y tamaño del establecimiento(PP04C99).
+
+- Quedarse con los Cuentapropistas y asalariados (CAT_OCUP = 2 y 3) y comparar, según la condición de precariedad laboral (PP07H) la distribución del ingreso según sexo (CH04)
+
+- Incorporar en el gráfico anterior el tamaño del establecimiento(PP04C99)
+
+
+__yapa:__ Si quisieramos modelar la probabilidad de un evento podemos usar una regresión logísitca (en ggplot ```stat_smooth(method="glm", method.args=list(family="binomial")```).     
+Utilicen este modelo para hacer un gráfico que eche luz sobre el siguiente fenómeno: 
+
+- ¿Cómo se distribuye la probabilidad de querer trabajar más horas (PP03G) según el total de horas trabajadas por semana (PP3E_TOT)? ¿Es diferente el modelo según sexo(CH04)?
+
+
 
