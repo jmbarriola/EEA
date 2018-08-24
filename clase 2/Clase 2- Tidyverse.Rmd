@@ -618,20 +618,36 @@ ggsave(filename = paste0("../Resultados/", "regresion lineal.png"),scale = 2)
 
 ## Precios y dólar
 
-En la carpeta __fuentes__ se encuentran los archivos __dolar-diario.csv__ y __ipc-mensual.csv__. Con ellos, el objetivo es mirar el movimiento conjunto de ambas series de datos. Para ello
+En la carpeta __fuentes__ se encuentran los archivos __dolar-diario.csv__ y __ipc-mensual.csv__. Con ellos, el objetivo es realizar un análisis exploratorio de estas variables de la economía argentina. 
+La base de datos del dolar tiene frecuencia diaria y comienza en Marzo de 2002.
+La base de datos del IPC tiene frecuencia mensual y comienza en Abril de 2016.
 
-1. Levnatar ambos conjuntos de datos
-2. Renombramos la variable del tipo de cambio por algo más sencillo
-3. Creamos las variables fecha, año, mes y día
+Para trabajar con el dòlar en una frecuencia mensual vamos a considerar la cotización del primer día hábil de cada mes como la cotización de dicho mes.
+
+Deben poder mostrar los siguientes gráficos y contestar estas preguntas:
+
+a) Gráfico de la evolución del dólar (construir la frecuencia mensual del dólar con el tipo de cambio del primer día hábil del mes)
+b) Gráfico de la evolución del IPC General
+c) Gráfico de la evolución de los cuatro grupos del IPC
+d) ¿Cuál es la media, el desvío estándar, la mediana y el rango del dólar y del IPC General para cada uno de los años?
+e) Gráfico de la evolución del dólar y del IPC General para el período de tiempo que tenemos datos de ambas variables
+f) Gráfico de la evolución del dólar y de los 4 grupos de IPC para el período de tiempo que tenemos datos de ambas variables
+
+Recomendamos que intenten ir resolviendo los problemas que surjan consultandonos a nosotros, los "machetes" de R y otras páginas pero dejamos una guía de pasos y ayudas 
+
+1. Levantar ambos conjuntos de datos
+2. En el dataset del dólar renombramos la variable del tipo de cambio por algo más sencillo
+3. Creamos las variables fecha, año, mes y día 
 4. Seleccionamos el primer día hábil del mes para obtener la primer cotización del mes (para el dolar)
 5. Graficamos la evolución del tipo de cambio
-6. Normalizar los datos del IPC con $gather$
+6. Normalizar los datos del IPC. *Pista*: piensen si tienen que usar $spread$ o $gather$
 7. Creamos las variables fecha, año y mes
-8. Graficar el nivel general del IPC
-9. Graficar los grupos
-10. Unir ambos conjutnos de datos
-11. Grafical el dólar contra el nivel general del IPC (tener en cuenta el rango de las variables)
-12. Grafical el nivel del dolar contra los grupos del IPC
+8. Graficamos la evolución del nivel general del IPC
+9. Graficamos la evolución de los 4 grupos
+10. Realizamos un join de ambos conjuntos de datos. Consideren qué tipo de join tienen que usar 
+11. Obtenemos las estadisticas de resumen de la pregunta d)
+11. Graficamos la evoluciòn del dólar y del nivel general del IPC (tener en cuenta el rango de las variables)
+12. Graficamos la evoluciòn del dólar y de los grupos del IPC
 
 ## EPH
 

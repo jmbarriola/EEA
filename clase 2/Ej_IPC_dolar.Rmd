@@ -123,8 +123,10 @@ Como los rangos de las variables son muy diferentes, tenemos que utilizar un seg
 
 ```{r}
 ggplot()+
-  geom_line(data = ipc_dolar %>% filter(Apertura=="Nivel general"),aes(date,ipc, color ="Nivel general"))+
+  geom_line(data = ipc_dolar %>% filter(Apertura=="Nivel general"),aes(x=date,y=ipc, color ="Nivel general"))+
   geom_line(data = ipc_dolar,aes(date,tipo_cambio*10, color ="Dolar"))+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC y Dolar")+
+  theme_bw()+
   scale_y_continuous(sec.axis = sec_axis(~.*.1, name = "Dolar"))
 
 ```
@@ -137,7 +139,8 @@ ggplot()+
   geom_line(data = ipc_dolar,aes(date,tipo_cambio*7, color ="Dolar"))+
   scale_y_continuous(sec.axis = sec_axis(~./7, name = "Dolar"))+
   scale_colour_manual("Color",values=c("darkgreen"))+
-  theme_minimal()+
+  theme_bw()+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC y Dolar por grupo")+
   facet_wrap(.~Apertura)
 
 ```
