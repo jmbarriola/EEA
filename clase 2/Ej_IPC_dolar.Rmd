@@ -3,12 +3,6 @@ title: "Ejercicio Tidyverse"
 output: html_notebook
 ---
 
-```{r setup}
-
-knitr::opts_knit$set(root.dir = '/home/juan/EEA/Fuentes/')
-
-```
-
 ```{r}
 #Librerias
 library(lubridate)
@@ -19,8 +13,8 @@ library(ggplot2)
 
 Realizamos la lectura de los datasets y miramos su estructura
 ```{r}
-ipc = read.csv('ipc-mensual.csv')
-dolar = read.csv('dolar-diario.csv')
+ipc = read.csv('../Fuentes/ipc-mensual.csv')
+dolar = read.csv('../Fuentes/dolar-diario.csv')
 glimpse(ipc)
 glimpse(dolar)
 ```
@@ -68,20 +62,26 @@ ipc= ipc %>% mutate(date=ymd(parse_date_time(date, orders = 'my')),
                     year=year(date), month=month(date))
 ```
 
-Graficamos la distribución del IPC por grupo 
+Graficamos la distribución del IPC a nivel general
+
 ```{r}
-ggplot(ipc, aes(x= Apertura, y = ipc, group = Apertura, fill = Apertura )) +
-  geom_boxplot()+
-  labs(title="Distribución del IPC por grupo")+
-  theme_bw()+
-  scale_fill_brewer(palette = "Set1")
+ipc %>% filter(Apertura== "Nivel general") %>% 
+ggplot(., aes(x= date, y = ipc, group = Apertura )) +
+  geom_point(color="firebrick")+
+  geom_line(size= 1,alpha=0.75, color = "firebrick")+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC")+
+  theme_bw()
+
 ```
+
+
+
 
 Graficamos la distribución del IPC por grupo 
 ```{r}
 ggplot(ipc, aes(x= date, y = ipc, group = Apertura, color = Apertura )) +
   geom_point()+
-  geom_line()+
+  geom_line(size=1,alpha=0.75)+
   labs(x="Fecha", y="IPC", title="Evolución del IPC por grupo")+
   theme_bw()+
   scale_color_brewer(palette = "Set1")
@@ -117,44 +117,28 @@ resumen=ipc_dolar %>% filter(Apertura=="Nivel general") %>%
 resumen
 ```
 
-Realizamos un gráfico de dispersión para el tipo de cambio y el IPC
+
+Con las dos fuentes de información juntas, podemos realizar gráficos conjuntos
+Como los rangos de las variables son muy diferentes, tenemos que utilizar un segundo eje.
 
 ```{r}
-ggplot(ipc_dolar, aes(x=tipo_cambio, y=ipc)) +
-  geom_point() +
-  labs(x="Tipo de Cambio", y="IPC", title="Gráfico de Dispersión: Tipo de Cambio e IPC")+
-  theme_bw()
+ggplot()+
+  geom_line(data = ipc_dolar %>% filter(Apertura=="Nivel general"),aes(date,ipc, color ="Nivel general"))+
+  geom_line(data = ipc_dolar,aes(date,tipo_cambio*10, color ="Dolar"))+
+  scale_y_continuous(sec.axis = sec_axis(~.*.1, name = "Dolar"))
+
 ```
 
-Podemos agregar la información del tipo de IPC considerado
+También agrupando por apertura
 
 ```{r}
-ggplot(ipc_dolar, aes(x=tipo_cambio, y=ipc, color=Apertura)) +
-  geom_point() +
-  labs(x="Tipo de Cambio", y="IPC", title="Gráfico de Dispersión: Tipo de Cambio e IPC")+
-  theme_bw()+
-  scale_color_brewer(palette = "Set1")
+ggplot()+
+  geom_line(data = ipc_dolar,aes(date,ipc))+
+  geom_line(data = ipc_dolar,aes(date,tipo_cambio*7, color ="Dolar"))+
+  scale_y_continuous(sec.axis = sec_axis(~./7, name = "Dolar"))+
+  scale_colour_manual("Color",values=c("darkgreen"))+
+  theme_minimal()+
+  facet_wrap(.~Apertura)
+
 ```
 
-Podemos abrirlo por tipo de IPC para generar 4 gráficos separados
-
-```{r}
-ggplot(ipc_dolar, aes(x=tipo_cambio, y=ipc, color=Apertura)) +
-  geom_point() +
-  facet_wrap(~ Apertura) +
-  labs(x="Tipo de Cambio", y="IPC", title="Gráfico de Dispersión: Tipo de Cambio e IPC")+
-  theme_bw()+
-  scale_color_brewer(palette = "Set1") 
-```
-
-Podemos agregar la información del año 
-
-```{r}
-ggplot(ipc_dolar, aes(x=tipo_cambio, y=ipc, color=as.factor(year))) +
-  geom_point() +
-  facet_wrap(~ Apertura) +
-  labs(x="Tipo de Cambio", y="IPC", title="Gráfico de Dispersión: Tipo de Cambio e IPC",
-       subtitle="Por año", color="Año")+
-  theme_bw()+
-  scale_color_brewer(palette = "Dark2") 
-```

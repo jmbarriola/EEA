@@ -378,7 +378,7 @@ __levanto una base de microdatos de EPH para graficar__
 
 ```{r}
 
-Individual_t117 <- read.table(paste0("/home/juan/EEA/Fuentes/usu_individual_t117.txt"),
+Individual_t117 <- read.table(paste0("../Fuentes/usu_individual_t117.txt"),
                               sep=";", dec=",", header = TRUE, fill = TRUE)
 ```
 
@@ -484,7 +484,7 @@ ggplot(datagraf2, aes(
         plot.title      = element_text(size=12))+
   facet_wrap(~ CH04, scales = "free")
 
-ggsave(filename = paste0("/home/juan/EEA/Resultados/", "Kernel_1.png"),scale = 2)
+ggsave(filename = paste0("../Resultados/", "Kernel_1.png"),scale = 2)
 
 ```
 
@@ -507,7 +507,7 @@ ggplot(datagraf2, aes(
         plot.title      = element_text(size=12))+
   facet_wrap(~Tipo_ingreso, scales = "free")
 
-ggsave(filename = paste0("/home/juan/EEA/Resultados/", "Kernel_1.png"),scale = 2)
+ggsave(filename = paste0("../Resultados/", "Kernel_1.png"),scale = 2)
 
 ```
 
@@ -607,7 +607,7 @@ ggplot(ggdata, aes(CH06, P21, colour = Establecimiento, weight = PONDIIO)) +
   theme_minimal()+
   facet_grid(Sexo ~ NIVEL_ED)
 
-ggsave(filename = paste0("/home/juan/EEA/Resultados/", "regresion lineal.png"),scale = 2)
+ggsave(filename = paste0("../Resultados/", "regresion lineal.png"),scale = 2)
 
 ```
 
@@ -615,6 +615,25 @@ ggsave(filename = paste0("/home/juan/EEA/Resultados/", "regresion lineal.png"),s
 
 
 # Ejercicios para practicar
+
+## Precios y dólar
+
+En la carpeta __fuentes__ se encuentran los archivos __dolar-diario.csv__ y __ipc-mensual.csv__. Con ellos, el objetivo es mirar el movimiento conjunto de ambas series de datos. Para ello
+
+1. Levnatar ambos conjuntos de datos
+2. Renombramos la variable del tipo de cambio por algo más sencillo
+3. Creamos las variables fecha, año, mes y día
+4. Seleccionamos el primer día hábil del mes para obtener la primer cotización del mes (para el dolar)
+5. Graficamos la evolución del tipo de cambio
+6. Normalizar los datos del IPC con $gather$
+7. Creamos las variables fecha, año y mes
+8. Graficar el nivel general del IPC
+9. Graficar los grupos
+10. Unir ambos conjutnos de datos
+11. Grafical el dólar contra el nivel general del IPC (tener en cuenta el rango de las variables)
+12. Grafical el nivel del dolar contra los grupos del IPC
+
+## EPH
 
 El Objetivo de estos ejercicios es practicar el uso del $tidyverse$ para la manipulación de los datos, y $ggplot$ para graficar la información. En las consignas, se propone de manera general qué variables se quiere observar. Ustedes deberán levantar y procesar los datos de la Encuesta Permanente de Hogares, y gráficarlos como consideren que mejor se aprecia la relación entre las variables.     
 
