@@ -19,10 +19,15 @@ Este paquete agrupa una serie de paquetes que tienen una misma lógica en su dis
 Entre ellos usaremos principalmente __ggplot__ para realizar gráficos, y __dplyr__ y __tidyr__ para realizar transformaciones sobre nuestro set de datos.
 
 A continuación cargamos la librería a nuestro ambiente. Para ello debe estar previamente instalada en nuestra pc.
-```{r}
+```{r,eval=FALSE}
 library(tidyverse)
 ```
-
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+```
 Para mostrar el funcionamiento básico de tydyverse retomaremos el ejemplo de la clase 1, con lo cual volvemos a crear el set de datos del [Indice de salarios](http://www.indec.gob.ar/bajarCuadroEstadistico.asp?idc=4020B33440609462654542BD0BC320F1523DA0DC52C396201DB4DD5861FFEDC9AD1436681AC84179).
 
 ```{r, warning=FALSE}
@@ -33,7 +38,7 @@ INDICE  <- c(100,   100,   100,
 
 FECHA  <-  c("Oct-16", "Oct-16", "Oct-16",
              "Nov-16", "Nov-16", "Nov-16",
-             "Dic-16", "Dic-16", "Dic-16")
+             "Dec-16", "Dec-16", "Dec-16")
 
 
 GRUPO  <-  c("Privado_Registrado","Público","Privado_No_Registrado",
@@ -53,6 +58,21 @@ Los ```%>%``` toman el set de datos a su izquierda, y los transforman mediante l
 $f(x,y)$ es equivalente a $x$ %>% $f(.,y)$ 
 
 Veamos las principales funciones que pueden utilizarse con la lógica de este paquete:
+
+### glimpse
+
+Permite ver la estructura de la tabla. Nos muestra: 
+
+* número de filas
+* número de columnas
+* nombre de las columnas
+* tipo de dato de cada columna
+* las primeras observaciones de la tabla
+
+```{r}
+glimpse(Datos)
+```
+
 
 ### filter
 
@@ -208,6 +228,59 @@ iris_horizontal <- iris_vertical %>%
 iris_horizontal
 ```
 
+## Lubridate
+
+El paquete lubridate está pensado para trabajar con los datos tipo fecha(date) o fecha-hora(datetime) para cambiarles el formato, realizar operaciones y extraer información
+
+### Cambio de formato
+
+Existe una gran cantidad de funciones para realizar esto. La idea general es poder llevar los objetos datetime a un formato común compuesto de los elementos: año, mes, día, hora, minuto y segundo (también se puede setear el huso horario)
+
+```{r}
+fecha  <- "04/12/92 17:35:16"
+fecha
+```
+
+Con la función dmy_hms podemos convertir este string a una fecha: estamos indicando que el formato de la fecha es día(d), mes(m), año(y), hora(h), minuto(m) y segundo(s)
+```{r}
+fecha  <- dmy_hms(fecha)
+fecha
+```
+Muchas funciones de lubridate operan con esta misma lógica
+
+Otra función para realizar un cambio de formato es *parse_date_time*. Permite construir objetos datetime a partir de datos más complejos, como por ejemplo cuando aparece el nombre del mes y el año.
+
+En el parámetro *x* pasamos el dato de la fecha y en el parámetro *orders* especificamos el orden en el cual se encuentra la información de la fecha
+
+```{r}
+fecha2  <- "Dec-92"
+fecha2 <- parse_date_time(fecha2, orders = 'my')
+fecha2
+```
+
+
+### Extracción de información
+
+Existen muchas funciones muy sencillas para extraer información de un objeto datetime. Algunas son
+
+```{r}
+year(fecha) # Obtener el año
+month(fecha) #Obtener el mes
+day(fecha) # Obtener el día
+wday(fecha, label = TRUE) #Obtener el nombre del día
+hour(fecha) #Obtener la hora
+```
+
+### Operaciones
+
+Podemos sumar o restarle cualquier período de tiempo a un objeto datetime
+
+```{r}
+# Sumo dos días 
+fecha + days(2)
+# Resto 1 semana y dos horas
+fecha - (weeks(1) + hours(2))
+```
 
 
 # Gráficos
@@ -305,7 +378,7 @@ __levanto una base de microdatos de EPH para graficar__
 
 ```{r}
 
-Individual_t117 <- read.table(paste0(bases.dir,"../Fuentes/usu_individual_t117.txt"),
+Individual_t117 <- read.table(paste0("/home/juan/EEA/Fuentes/usu_individual_t117.txt"),
                               sep=";", dec=",", header = TRUE, fill = TRUE)
 ```
 
@@ -411,7 +484,7 @@ ggplot(datagraf2, aes(
         plot.title      = element_text(size=12))+
   facet_wrap(~ CH04, scales = "free")
 
-ggsave(filename = paste0(resultados.dir, "Kernel_1.png"),scale = 2)
+ggsave(filename = paste0("/home/juan/EEA/Resultados/", "Kernel_1.png"),scale = 2)
 
 ```
 
@@ -434,7 +507,7 @@ ggplot(datagraf2, aes(
         plot.title      = element_text(size=12))+
   facet_wrap(~Tipo_ingreso, scales = "free")
 
-ggsave(filename = paste0(resultados.dir, "Kernel_1.png"),scale = 2)
+ggsave(filename = paste0("/home/juan/EEA/Resultados/", "Kernel_1.png"),scale = 2)
 
 ```
 
@@ -534,7 +607,7 @@ ggplot(ggdata, aes(CH06, P21, colour = Establecimiento, weight = PONDIIO)) +
   theme_minimal()+
   facet_grid(Sexo ~ NIVEL_ED)
 
-ggsave(filename = paste0(resultados.dir, "regresion lineal.png"),scale = 2)
+ggsave(filename = paste0("/home/juan/EEA/Resultados/", "regresion lineal.png"),scale = 2)
 
 ```
 
