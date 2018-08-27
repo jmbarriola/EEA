@@ -14,7 +14,7 @@ ui <- fluidPage(theme = shinytheme("paper"),
                 
                 sidebarLayout(
                   sidebarPanel("Diego Kozlowski, Juan Manuel Barriola",
-                               checkboxInput(inputId = "seed", label = "Modificar datos",value = TRUE),
+                               checkboxInput(inputId = "seed", label = "Mantener datos",value = TRUE),
                                sliderInput(inputId = "deg1", label = "Grado del modelo", value = 2,
                                            min = 1, max = 20,step = 1),
                                "Datos reales",
@@ -46,7 +46,7 @@ server <- function (input, output) {
     q = input$q
     s = input$s
     
-    observeEvent(input$seed,{set.seed(sample(1:1000, 1))})
+    observeEvent(input$seed,{set.seed(1234)}) #sample(1:1000, 1)
     x <- runif(n, min = -1, max = 1)
     epsi <- rnorm(n, mean = 0,sd = s) #ruido
     poly <- polynom::polynomial(rnorm(n = q+1)) #polinomio
@@ -83,8 +83,6 @@ server <- function (input, output) {
       h5(paste0('modelo propuesto  $$',eq,'$$')))
   })
   
-  
-  
   output$plot =  renderPlot({
     
     polynomial <- as.function(data()[[2]])
@@ -98,9 +96,5 @@ server <- function (input, output) {
                   color = "red", se = FALSE, size = 1.25, alpha = 0.9) +
       theme(panel.background = element_rect(color = "black"))
   })
-  
-  
-  
 }
-
 shinyApp(ui, server)
