@@ -8,13 +8,13 @@ library(shiny)
 library(shinythemes)
 
 
-ui <- fluidPage(theme = shinytheme("flatly"),
+ui <- fluidPage(theme = shinytheme("paper"),
                 
                 titlePanel("Overfitting"),
                 
                 sidebarLayout(
-                  
-                  sidebarPanel(checkboxInput(inputId = "seed", label = "Modificar datos",value = TRUE),
+                  sidebarPanel("Diego Kozlowski, Juan Manuel Barriola",
+                               checkboxInput(inputId = "seed", label = "Modificar datos",value = TRUE),
                                sliderInput(inputId = "deg1", label = "Grado del modelo", value = 2,
                                            min = 1, max = 20,step = 1),
                                "Datos reales",
@@ -48,9 +48,9 @@ server <- function (input, output) {
     
     observeEvent(input$seed,{set.seed(sample(1:1000, 1))})
     x <- runif(n, min = -1, max = 1)
-    epsi <- rnorm(n, mean = 0,sd = s) #noise
-    poly <- polynom::polynomial(rnorm(n = q+1)) #poly
-    y <- predict(poly, x) + epsi #values of poly 
+    epsi <- rnorm(n, mean = 0,sd = s) #ruido
+    poly <- polynom::polynomial(rnorm(n = q+1)) #polinomio
+    y <- predict(poly, x) + epsi #valores con ruido 
     
     return(list(data.frame(x, y), poly))
   })
@@ -66,7 +66,7 @@ server <- function (input, output) {
       
     }
     withMathJax(
-      helpText(paste0('modelo real  $$',eq,'+ \\epsilon$$',
+      h5(paste0('modelo real  $$',eq,'+ \\epsilon$$',
                       'con $$\\epsilon\\sim\\mathcal{N}(0,\\,',input$s,')$$')))
   })
   
@@ -80,7 +80,7 @@ server <- function (input, output) {
       
     }
     withMathJax(
-      helpText(paste0('modelo propuesto  $$',eq,'$$')))
+      h5(paste0('modelo propuesto  $$',eq,'$$')))
   })
   
   
