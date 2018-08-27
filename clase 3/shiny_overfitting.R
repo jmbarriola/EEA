@@ -1,5 +1,5 @@
 #######                                                #######
-####### Tomado de https://github.com/apapiu/Shiny-Apps #######
+####### basado en https://github.com/apapiu/Shiny-Apps #######
 #######                                                #######
 
 library(polynom)
@@ -25,7 +25,16 @@ ui <- fluidPage(theme = shinytheme("flatly"),
                                sliderInput(inputId = "s", label = "Cantidad de ruido", value = .5,
                                            min = 0, max = 3,step = .1), width = 3),
                   
-                  mainPanel(plotOutput("plot", width = "800px", height = "600px"))
+                  mainPanel(
+                    h2(textOutput("text", container = span)),
+                    withMathJax(),
+                    uiOutput('eq0'),
+                    uiOutput('eq1'),
+                    plotOutput("plot", width = "800px", height = "600px"))
+                  
+                  
+                  
+                  
                 )
 )
 
@@ -37,15 +46,43 @@ server <- function (input, output) {
     q = input$q
     s = input$s
     
-    #set.seed(233)
     observeEvent(input$seed,{set.seed(sample(1:1000, 1))})
     x <- runif(n, min = -1, max = 1)
-    epsi <- rnorm(n) #noise
+    epsi <- rnorm(n, mean = 0,sd = s) #noise
     poly <- polynom::polynomial(rnorm(n = q+1)) #poly
-    y <- predict(poly, x) + sqrt(s)*epsi #values of poly +noise
+    y <- predict(poly, x) + epsi #values of poly 
     
     return(list(data.frame(x, y), poly))
   })
+  
+  output$text <- renderText({
+    paste0("El concepto de overfitting en el modelo lineal univariado")})
+  
+  output$eq0 <- renderUI({
+    eq <- paste0("y  = \\beta_0")
+    
+    for (i in c(1:input$q)) {
+      eq <- paste0(eq, '+ \\beta_{',i,'}','x^{',i,'}')
+      
+    }
+    withMathJax(
+      helpText(paste0('modelo real  $$',eq,'+ \\epsilon$$',
+                      'con $$\\epsilon\\sim\\mathcal{N}(0,\\,',input$s,')$$')))
+  })
+  
+  
+  
+  output$eq1 <- renderUI({
+    eq <- paste0("\\hat{y}  = \\beta_0")
+    
+    for (i in c(1:input$deg1)) {
+      eq <- paste0(eq, '+ \\beta_{',i,'}','x^{',i,'}')
+      
+    }
+    withMathJax(
+      helpText(paste0('modelo propuesto  $$',eq,'$$')))
+  })
+  
   
   
   output$plot =  renderPlot({
