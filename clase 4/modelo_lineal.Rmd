@@ -157,4 +157,3 @@ cor(mammals$logBrainWt, mammals$logBodyWt, method = "spearman")
 ### Ejercicio 1.8 
 ¿Con qué coefciente de correlación, Pearson o Spearman, resumiría los datos de cars?(weight, mpgCity):
 __Pearson__
-

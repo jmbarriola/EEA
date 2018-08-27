@@ -7,7 +7,7 @@ output:
 ---
 
 
-# 5. Ejercicios Regresión Lineal Múltiple (primera parte)
+# 5. Ejercicios Regresión Lineal Múltiple
 
 ### Ejercicio 5.1 Medidas del cuerpo V. Base de datos bdims del paquete openintro.
 
