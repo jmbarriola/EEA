@@ -26,7 +26,8 @@ ui <- fluidPage(theme = shinytheme("paper"),
                                            min = 0, max = 3,step = .1), width = 3),
                   
                   mainPanel(
-                    h2(textOutput("text", container = span)),
+                    h2(textOutput("text1", container = span)),
+                    h4(textOutput("text2", container = span)),
                     withMathJax(),
                     uiOutput('eq0'),
                     uiOutput('eq1'),
@@ -55,8 +56,11 @@ server <- function (input, output) {
     return(list(data.frame(x, y), poly))
   })
   
-  output$text <- renderText({
-    paste0("El concepto de overfitting en el modelo lineal univariado")})
+  output$text1 <- renderText({
+    paste0("El concepto de overfitting en el modelo lineal")})
+  
+  output$text2 <- renderText({
+    paste0("El modelo SIEMPRE es lineal en los coeficientes y sus efectos SIEMPRE son aditivos")})
   
   output$eq0 <- renderUI({
     eq <- paste0("y  = \\beta_0")
@@ -66,7 +70,7 @@ server <- function (input, output) {
       
     }
     withMathJax(
-      h5(paste0('modelo real  $$',eq,'+ \\epsilon$$',
+      h5(paste0('Modelo Real  $$',eq,'+ \\epsilon$$',
                       'con $$\\epsilon\\sim\\mathcal{N}(0,\\,',input$s,')$$')))
   })
   
@@ -80,7 +84,7 @@ server <- function (input, output) {
       
     }
     withMathJax(
-      h5(paste0('modelo propuesto  $$',eq,'$$')))
+      h5(paste0('Modelo Propuesto  $$',eq,'$$')))
   })
   
   output$plot =  renderPlot({
@@ -89,7 +93,7 @@ server <- function (input, output) {
     
     ggplot(data()[[1]]) +
       aes(x, y) +
-      geom_point(alpha = 0.7, size = 3, shape = 1) +
+      geom_point(alpha = 0.7, size = 3, color='forestgreen') +
       theme_classic() +
       stat_function(fun = polynomial, size = 1.25, alpha = 0.9) +
       geom_smooth(method = "lm", formula = y ~ poly(x,input$deg1), 
