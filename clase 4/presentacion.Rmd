@@ -1,0 +1,106 @@
+---
+title: "Correlacion"
+output:
+  html_notebook:
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+    df_print: paged
+---
+
+```{r message=FALSE}
+library(tidyverse)
+library(openintro)
+#install.packages("GGally")
+library(GGally)
+library(knitr)
+library(kableExtra)
+options(knitr.table.format = "html") 
+```
+
+
+__Veamos la correlación en el dataset mtcars__
+
+primero, veamos de qué se trata el dataset
+
+```{r}
+mtcars %>% 
+  head() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+
+Con ggpairs, podemos graficar todas las variables, y buscar las correlaciones
+
+Coloreamos por:
+
+-$am$: Tipo de transmisión: automatico (am=0) o manual (am=1)
+
+
+```{r message=FALSE, warning=FALSE, fig.width=10, fig.height=10}
+mtcars %>% 
+  select(-carb,-vs) %>% 
+  mutate(cyl = factor(cyl),
+         am = factor(am)) %>% 
+ggpairs(., 
+        title = "Matriz de correlaciones",
+        mapping = aes(colour= am))
+```
+
+
+Si quisieramos testear la significatividad de la correlación entre:
+
+- $mpg$: Miles/(US) gallon. Eficiencia de combustible
+- $hp$: Gross horsepower: Potencia del motor
+
+
+$H_0$ : ρ =0        
+$H_1$ : ρ $\neq$ 0      
+
+```{r}
+cor.test(mtcars$mpg,mtcars$hp)
+```
+
+
+Con este p-value rechazamos $H_0$
+
+
+¿y si queremos comparar la relación entre $drat$ y $gear$?
+
+- $drat$:  la relación de engranaje del eje trasero: indica el número de vueltas del eje de transmisión para cada rotación del eje de la rueda. Un vehículo con una relación alta proporcionaría más par y, por lo tanto, más capacidad de remolque, por ejemplo
+- $gear$: Número de velocidades hacia adelante
+
+
+
+Con ggpairs ya habíamos visto que la relación era diferente entre los automáticos y con transmisión manual. Sabiendo esto, veamos la correlación de cada grupo 
+
+```{r}
+mtcars %>% 
+  group_by(am) %>% 
+  summarise(cor = cor(drat, gear))
+```
+
+La correlación para los autos automáticos da súper alto! quedemosnos con ese grupo
+
+```{r}
+mtcars2 <- mtcars %>% filter(am==0)
+ggplot(mtcars2, aes(gear,drat, group=gear, fill = factor(gear)))+
+  geom_boxplot(alpha= 0.75)
+```
+
+
+No parece muy correcto hacer un test de correlación de pearson, es decir buscar una relación lineal, con una variable que sólo toma dos valores.
+
+Usemos el test de correlación de Spearman
+
+```{r}
+
+cor.test(mtcars2$gear,mtcars2$drat, method = "pearson")
+cor.test(mtcars2$gear,mtcars2$drat, method = "spearman")
+```
+
+
+Noten que el test de Spearman ya no da tan significativo como el de Pearson, y al 1% ya no rechazamos. 
+
+
