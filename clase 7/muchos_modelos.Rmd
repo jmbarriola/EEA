@@ -1,0 +1,384 @@
+---
+title: Comparación de modelos^[Estas notas estan basadas en Hadley Wickham and Garrett Grolemund. 2017. R for Data Science Import, Tidy, Transform, Visualize, and Model Data (1st ed.). O'Reilly Media, Inc.  http://r4ds.had.co.nz.]
+output:
+  html_document:
+    theme: spacelab
+  html_notebook:
+    df_print: paged
+    theme: spacelab
+    toc_float: yes
+---
+
+# Muchos Modelos- Clase 1
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  #cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold"
+)
+```
+
+
+```{r setup, message = FALSE}
+library(modelr)
+library(broom)
+library(tidyverse)
+```
+
+## gapminder
+
+Los datos de gapminder resumen el progreso de los países a lo largo del tiempo, mirando estadísticas como la esperanza de vida y el PBI. Los datos son de fácil acceso en R, gracias a Jenny Bryan, quien creó el paquete gapminder:
+
+
+```{r}
+#install.packages("gapminder")
+library(gapminder)
+gapminder
+```
+
+En este estudio de caso, vamos a centrarnos solo en tres variables para responder a la pregunta "¿Cómo cambia la esperanza de vida (` lifeExp`) en el tiempo (`year`) para cada país (`country`)? ". Un buen lugar para comenzar es con una gráfico:
+
+
+```{r}
+gapminder %>% 
+  ggplot(aes(year, lifeExp, group = country)) +
+    geom_line(alpha = 1/3)
+```
+
+Se puede ver que en general hay una tendencia a que suba la esperanza de vida en el tiempo, pero también algunos países parecen tener un comportamiento diferente. 
+
+
+Si quisieramos calcular el modelo lineal para alguno de estos países
+
+
+```{r, out.width = "33%", fig.asp = 1, fig.width = 3, fig.align='default'}
+
+nz <- filter(gapminder, country == "New Zealand")
+nz %>% 
+  ggplot(aes(year, lifeExp)) + 
+  geom_line() + 
+  ggtitle("Y = ")
+
+nz_mod <- lm(lifeExp ~ year, data = nz)
+nz %>% 
+  add_predictions(nz_mod) %>%
+  ggplot(aes(year, pred)) + 
+  geom_line() + 
+  ggtitle(expression(beta[0] + beta[1]*x))
+
+nz %>% 
+  add_residuals(nz_mod) %>% 
+  ggplot(aes(year, resid)) + 
+  geom_hline(yintercept = 0, colour = "white", size = 3) + 
+  geom_line() + 
+  ggtitle(expression(+ epsilon))
+```
+
+Como hacemos para ajustar un modelo por país?
+
+## Nested data
+
+En lugar de copiar y pegar el código para cada país, podríamos utilizar una función. 
+
+Este problema está estructurado de forma un poco diferente a lo que has visto antes. En lugar de repetir una acción para cada variable, queremos repetir una acción para cada país, un subconjunto de filas. Para hacer eso, necesitamos una nueva estructura de datos: el __nested dataframe__. Para crear un dataframe anidado, comenzamos con un DF agrupado y lo "anidamos":
+```{r}
+by_country <- gapminder %>% 
+  group_by(country, continent) %>% 
+  nest()
+
+by_country
+```
+
+
+This creates a data frame that has one row per group (per country), and a rather unusual column: `data`. `data` is a list of data frames (or tibbles, to be precise).  This seems like a crazy idea: we have a data frame with a column that is a list of other data frames! I'll explain shortly why I think this is a good idea.
+
+Esto crea un dataframe que tiene una fila por grupo (por país) y una columna bastante inusual: `data` es una lista de dataframes 
+
+```{r}
+by_country$data[[1]]
+```
+
+Tengan en cuenta la diferencia entre DF agrupado estándar y un DF anidada: en un DF agrupada, cada fila es una observación; en un DF anidado, cada fila es un grupo. Otra forma de pensar sobre un conjunto de datos anidados es que ahora tenemos una metaobservación: una fila que representa el curso de tiempo completo para un país, en lugar de un único punto en el tiempo.
+
+
+## List-columns
+
+Con este DF podemos utilizar la función para ajustar los modelos
+
+```{r}
+country_model <- function(df) {
+  lm(lifeExp ~ year, data = df)
+}
+```
+
+
+Queremos aplicarlo a cada uno de los dataframes anidados. Podemos usar `purrr::map()` para aplicar la función que definimos a cada elemento
+
+```{r}
+models <- map(by_country$data, country_model)
+```
+
+En lugar de crear un nuevo objeto en el entorno global, vamos a crear una nueva variable en el DF `by_country`. Ese es un trabajo para `dplyr :: mutate ()`:
+
+
+```{r}
+by_country <- by_country %>% 
+  mutate(model = map(data, country_model))
+by_country
+```
+
+
+Esto tiene una gran ventaja: debido a que todos los objetos relacionados se almacenan juntos, no es necesario que los mantengas sincronizados manualmente cuando los filtres o organices. La semántica del DF nos ayuda a tener todo organizado:
+
+```{r}
+by_country %>% 
+  filter(continent == "Europe")
+by_country %>% 
+  arrange(continent, country)
+```
+
+Si su lista de DF y la lista de modelos eran objetos separados, Tenés que acordarte que cada vez que se reordena o filtra un elemento, necesitas volver a ordenar o filtrar todos los demás para mantenerlos sincronizados. Sino el código continuará funcionando, ¡pero __dará una respuesta incorrecta__!
+
+# Muchos Modelos- Clase 2
+
+## Unnesting
+
+En las clases anteriores agregamos los residuos a un modelo, utilizando `add_residuals()`. Ahora necesitamos hacerlo sobre 142 modelos y 142 datasets: Necesitamos utilizar la función `map2()`
+
+
+```{r}
+by_country <- by_country %>% 
+  mutate(
+    resids = map2(data, model, add_residuals)
+  )
+by_country
+```
+
+¿Pero cómo puedes trazar una lista de marcos de datos? En lugar de luchar para responder a esa pregunta, volvamos la lista de marcos de datos a un marco de datos normal. Previamente utilizamos `nest()` para convertir un marco de datos normal en un marco de datos anidado, y ahora hacemos lo contrario con `unnest()`:
+
+```{r}
+resids <- unnest(by_country, resids)
+resids
+```
+
+Ahora sí podemos graficar los resiudos
+
+```{r}
+resids %>% 
+  ggplot(aes(year, resid)) +
+    geom_line(aes(group = country), alpha = 1 / 3) + 
+    geom_smooth(se = FALSE)
+
+```
+
+podemos facetear por continente
+
+```{r}
+resids %>% 
+  ggplot(aes(year, resid, group = country)) +
+    geom_line(alpha = 1 / 3) + 
+    facet_wrap(~continent)
+```
+
+Parece que hay cierto patrón en los residuos que estamos perdiendonos con el modelo lineal
+
+
+## Diagnóstico del modelo
+
+vamos a utilizar la librería `broom` para calcular métricas de calidad del modelo. Este paquete forma parte del tidyverse, y nos va a permitir estandarizar el output de muchos modelos, lo que va a faciltar la comparación
+
+Empezamos por usar  `glance()` Para calcular algunas métricas típicas. Si lo aplicamos sobre un modelo, obtenemos un DF deuna fila y una columna para cada métrica
+
+```{r}
+glance(nz_mod)
+```
+
+Podemos usar  `mutate()` y `unnest()` para crear un DF con una fila por país (modelo):
+
+```{r}
+by_country %>% 
+  mutate(glnc = map(model, glance)) %>% 
+  unnest(glnc)
+```
+
+Si queremos sacarnos de encima las columnas de listas (`data`,`model`,`resids`), necesitamos agregar `.drop = TRUE`:
+
+```{r}
+glnc <- by_country %>% 
+  mutate(glnc = map(model, glance)) %>% 
+  unnest(glnc, .drop = TRUE)
+glnc
+```
+
+
+Podemos empezar a buscar los peores modelos ordenando por $R^2$
+
+```{r}
+glnc %>% 
+  arrange(r.squared)
+```
+
+Podemos confirmar la intuición de que el modelo lineal no esta funcionando bien para Africa. 
+
+Graficamente:
+
+```{r}
+glnc %>% 
+  ggplot(aes(continent, r.squared, fill = continent)) + 
+  geom_boxplot()+
+  theme(legend.position = "none")
+
+```
+
+
+```{r}
+glnc %>% 
+  ggplot(aes(continent, r.squared)) + 
+    geom_jitter(width = 0.5)
+```
+
+Podemos seleccionar los 5 peores modelos y graficarlos
+
+```{r}
+#bad_fit <- filter(glnc, r.squared < 0.25)
+bad_fit <- filter(glnc, rank(r.squared) < 5)
+
+gapminder %>% 
+  semi_join(bad_fit, by = "country") %>% 
+  ggplot(aes(year, lifeExp, colour = country)) +
+    geom_line()
+```
+
+Aquí vemos dos efectos principales: las tragedias de la epidemia de VIH / SIDA y el genocidio de Ruanda.
+
+The broom package provides three general tools for turning models into tidy data frames:
+
+
+
+## Tidy
+
+El comando `tidy(model)` nos permite obtener la salida del modelo lineal de forma prolija. 
+
+En el caso particular de un modelo. El output tradicional se vería de esta forma
+
+```{r}
+nz_mod <- lm(lifeExp ~ year, data = nz)
+
+summary(nz_mod)
+```
+
+Tenemos para `intercept` y `year` un valor estimado, error estandar y el p-value para ver su significatividad. 
+
+A la mandera tidy
+
+```{r}
+tidy(nz_mod)
+```
+
+De esta forma recuperamos las métricas que refieren a los coeficientes en un formato consistente. Esto es sumamente útil si queremos trabajar con varios modelos a la vez, o automatizar un pipline de trabajo con una salida de un modelo.
+
+Por ejemplo, obtengamos estos valores para todas las rergesiones. Para ello, necesitamos mapear los modelos con la función tidy
+
+
+```{r}
+tdy <- by_country %>% 
+  mutate(tdy = map(model, tidy)) %>% 
+  unnest(tdy, .drop = TRUE)
+tdy
+```
+
+Noten que para cada país ahora tenemos dos filas, una para cada coeficiente del modelo.
+
+Con esta tabla, ahora podríamos graficar los coeficientes del modelo. 
+
+Para un sólo modelo (nz_mod): 
+
+```{r}
+tidy(nz_mod) %>% mutate(low = estimate - std.error,
+                          high = estimate + std.error) %>% 
+ggplot(., aes(estimate, term, xmin = low, xmax = high, height = 0)) +
+     geom_point() +
+     geom_vline(xintercept = 0) +
+     geom_errorbarh()
+```
+
+En este gráfico tenemos graficado cada uno de los parámetros del modelo, con +-1 desvío estandar. si quisieramos comparar todos los modelos.
+
+```{r}
+tdy %>% mutate(low = estimate - std.error,
+                          high = estimate + std.error) %>% 
+ggplot(., aes(estimate, term, xmin = low, xmax = high, height = 0, color = country)) +
+     geom_point() +
+     geom_vline(xintercept = 0) +
+     geom_errorbarh()+
+  theme(legend.position = "none")
+```
+
+¿cómo interpretan estos coeficientes? ¿qué representa el intercepto de cada modelo?
+
+## augment
+
+la función `lm()` también tiene una serie de gráficos para evaluar la calidad del modelo que pueden ser muy útiles para encontrar si un modelo esta mal calibrado.
+
+```{r  out.width = "33%", fig.asp = 1, fig.width = 3, fig.align='default'}
+plot(nz_mod)
+```
+
+Estos gráficos son:
+
+- Residuos versus el modelo ajustado:  El objetivo es que no veamos una estructura clara. Si así la hubiera, esto implicaría que hay una parte __sistemática__ del fenómeno que se esta perdiendo. 
+- Normal QQ plot: sirve para ver si los datos siguen una distribución teórica, en este caso, la $\sim N(0,1)$. Los residuos estandarizados, si el modelo esta bien definido, deberían seguir esta distribución
+- Scale-location plot: Similar al primer gráfico, pero utilizando la raiz cuadrada de los residuos estandarizados. De la misma forma que el anterior, buscamos que no haya una estructura en los residuos.
+- scale vs leverage: El leverage mide cuan influyentes son los puntos en el modelo. Si en este gráfico algunas observacione aparecen muy separadas, con mucho leverage y residuo, significa que cambian mucho al modelo.
+
+
+La función `augment(model, data)` nos permite recuperar la información necesaria para estos gráficos de forma sistemática.
+
+```{r}
+au <- augment(nz_mod,nz)
+au
+```
+
+
+```{r  out.width = "33%", fig.asp = 1, fig.width = 3, fig.align='default'}
+
+ggplot(au, aes(.fitted, .resid)) +
+  geom_point()+
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE)
+
+ggplot(au, aes(sample= .std.resid))+
+  stat_qq()+
+  geom_abline()
+
+ggplot(au, aes(.fitted, sqrt(abs(.std.resid))))+
+  geom_point()+
+  geom_smooth(se = FALSE)
+
+ggplot(au, aes(.hat, .std.resid)) +
+  geom_vline(size = 2, colour = "white", xintercept = 0) +
+  geom_hline(size = 2, colour = "white", yintercept = 0) +
+  geom_point() + geom_smooth(se = FALSE)
+
+```
+
+
+De la misma forma que con las otras funciones, podemos utilizar `map2(model, data, augment)` para calcular esto para todos nuestros modelos en simultaneo.
+
+
+```{r}
+augment <- by_country %>%
+  mutate(augment = map2( model,data,augment)) %>% 
+  unnest(augment, .drop = TRUE)
+augment
+
+```
+
+  
