@@ -101,4 +101,5 @@ server <- function (input, output) {
       theme(panel.background = element_rect(color = "black"))
   })
 }
+
 shinyApp(ui, server)
