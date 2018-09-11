@@ -3,8 +3,6 @@ title: "Correlacion"
 output:
   html_notebook:
     theme: spacelab
-    toc: yes
-    toc_float: yes
     df_print: paged
 ---
 
@@ -19,9 +17,14 @@ options(knitr.table.format = "html")
 ```
 
 
-__Veamos la correlación en el dataset mtcars__
+En estas notas de clase veremos el concepto de correlación: 
 
-primero, veamos de qué se trata el dataset
+$$\rho_{x,y}=\frac{cov(x,y)}{\sigma_x \sigma_y}$$
+
+## mtcars
+
+primero, veamos de qué se trata el dataset. Para esto, hacemos un `head()` de la tabla. Aprovechamos para usar la librería `knitr`, cuya función `kable()` permite realizar mejores presentaciones de resultados. Con `kable_styling()` podemos modificar algunas características de la tabla
+
 
 ```{r}
 mtcars %>% 
@@ -31,7 +34,7 @@ mtcars %>%
 ```
 
 
-Con ggpairs, podemos graficar todas las variables, y buscar las correlaciones
+Con `ggpairs()`, podemos graficar todas las variables, y buscar las correlaciones
 
 Coloreamos por:
 
@@ -49,11 +52,23 @@ ggpairs(.,
 ```
 
 
-Si quisieramos testear la significatividad de la correlación entre:
+Veamos la correlación entre:
 
 - $mpg$: Miles/(US) gallon. Eficiencia de combustible
 - $hp$: Gross horsepower: Potencia del motor
 
+Miramos el scatter plot y pareciera haber una relación negativa. 
+
+La mitad superior de la matriz muestra la estimación puntual de la correlación, para todos los datos y considerando cada conjunto por separado. Recordemos que la fórmula para calcular ese estimador es:
+
+
+$$
+r = \frac{\sum_{i=1}^n(x_i-\bar{x})(y_i-\bar{y})}{\sqrt{\sum_{i=1}^n(x_i-\bar{x})^2} \sqrt{\sum_{i=1}^n(y_i-\bar{y})^2}}
+$$
+
+
+
+Si quisieramos testear la significatividad de este estimador:
 
 $H_0$ : ρ =0        
 $H_1$ : ρ $\neq$ 0      
@@ -61,7 +76,6 @@ $H_1$ : ρ $\neq$ 0
 ```{r}
 cor.test(mtcars$mpg,mtcars$hp)
 ```
-
 
 Con este p-value rechazamos $H_0$
 
@@ -71,9 +85,7 @@ Con este p-value rechazamos $H_0$
 - $drat$:  la relación de engranaje del eje trasero: indica el número de vueltas del eje de transmisión para cada rotación del eje de la rueda. Un vehículo con una relación alta proporcionaría más par y, por lo tanto, más capacidad de remolque, por ejemplo
 - $gear$: Número de velocidades hacia adelante
 
-
-
-Con ggpairs ya habíamos visto que la relación era diferente entre los automáticos y con transmisión manual. Sabiendo esto, veamos la correlación de cada grupo 
+Con `ggpairs()` ya habíamos visto que la relación era diferente entre los automáticos y con transmisión manual. Sabiendo esto, volvamos a calcular los estimadores puntuales de cada grupo 
 
 ```{r}
 mtcars %>% 
