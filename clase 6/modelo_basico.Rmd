@@ -1,5 +1,5 @@
 ---
-title: "Modelo Lineal simple^[Estas notas estan basadas en http://r4ds.had.co.nz. Gracias Hadley!]"
+title: "Modelo Lineal simple^[Estas notas estan basadas en Hadley Wickham and Garrett Grolemund. 2017. R for Data Science Import, Tidy, Transform, Visualize, and Model Data (1st ed.). O'Reilly Media, Inc.  http://r4ds.had.co.nz.]"
 output:
   html_notebook:
     theme: spacelab
@@ -82,10 +82,10 @@ Para computar la distancia, primero necesitamos una función que represente a nu
   Crear una función que reciba un vector con los parametros del modelo, y el set de datos, y genere la predicción:
   
 ```{r}
-# model1 <- function(a, data) {
-# 
-#   
-#   }
+model1 <- function(a, data) {
+  a[1] + data$x * a[2]
+}
+
 model1(c(7, 1.5), sim1)
 ```
 
@@ -100,10 +100,11 @@ Necesitamos una función, con el mismo input que la anterior, que calcule el pro
 $$ECM = \sqrt\frac{\sum_i^n{(\hat{y_i} - y_i)^2}}{n}$$
 
 ```{r}
+measure_distance <- function(mod, data) {
+  diff <- data$y - model1(mod, data)
+  sqrt(mean(diff ^ 2))
+}
 
-# measure_distance <- function(mod, data) {
-# 
-#   }
 measure_distance(c(7, 1.5), sim1)
 ```
 
@@ -112,6 +113,7 @@ measure_distance(c(7, 1.5), sim1)
 ## Evaluando los modelos aleatorios
 
 Ahora podemos calcular el __ECM__ para todos los modelos del dataframe _models_. Para eso utilizamos el paquete __purrr__, para ejecutar varias veces la misma función sobre varios elementos. 
+
 
 ### MAP^[basado en https://jennybc.github.io/purrr-tutorial/ls03_map-function-syntax.html, gracias Jenny!]
 
@@ -133,6 +135,7 @@ Si tenemos más de dos...
 
 
 Nosotros tenemos que pasar pasar los valores de a1 y a2 (dos parámetros --> map2), pero como nuestra función toma sólo uno (el vector a), nos armamos una función de ayuda para wrapear a1 y a2
+
 
 
 ```{r}

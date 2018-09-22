@@ -113,6 +113,4 @@ cor.test(mtcars2$gear,mtcars2$drat, method = "spearman")
 ```
 
 
-Noten que el test de Spearman ya no da tan significativo como el de Pearson, y al 1% ya no rechazamos. 
-
-
+Noten que el test de Spearman ya no da tan significativo como el de Pearson
