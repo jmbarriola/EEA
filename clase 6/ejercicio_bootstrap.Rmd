@@ -1,0 +1,201 @@
+---
+title: "Ejercicio Bootstrap"
+output: html_notebook
+---
+
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(rsample)
+library(GGally)
+library(robust)
+library(ggridges)
+library(ggthemes)
+```
+
+El objetivo del ejercicio es comparar el ajuste lineal clásico (por mínimos cuadrados) con el ajuste robusto, en presencia de contaminación de la muestra. Evaluaremos la performance de los estimadores a través del bootstrap.
+
+### 1. Modelo simulado. 
+Primero fijemos la semilla
+
+```{r}
+set.seed(141414)
+```
+
+
+Para $n=100$, simule el siguiente modelo.
+
+
+__Modelo que sigue el 90\%__ de los datos
+
+$$
+Y=4+1.5X_{1}+8X_{2}-2X_{3}+\varepsilon
+$$
+
+__Modelo que sigue el 10\%__ de los datos (los contaminados)
+
+$$
+Y=4+1.5X_{1}+8X_{2}-60X_{3}+\varepsilon
+$$
+
+
+con $X_{1}\sim\mathcal{U}[0,10],$ $X_{2}\sim\mathcal{U}[0,10],$ $X_{3}\sim\mathcal{U}[0,10],$ $\varepsilon\sim N\left(  0,1\right)  ,$
+independientes entre sí
+
+Observemos que la única diferencia está en el coeficiente de la variable $X_3$. _El modelo (1) es el modelo verdadero._
+
+
+```{r}
+n <- 100
+x1 <- runif(n,0,10)
+x2 <- runif(n,0,10)
+x3 <- runif(n,0,10)
+err <- rnorm(n,mean = 0, sd = 1)
+
+y1 <- 4+1.5*x1[1:90]+8*x2[1:90]-2*x3[1:90]+err[1:90]
+y2 <- 4+1.5*x1[91:100]+8*x2[91:100]-60*x3[91:100]+err[91:100]
+
+y <- c(y1,y2)
+
+df <- data.frame(x1,x2,x3,y)
+df
+```
+
+
+una buena forma de visualizar los datos sería con un diagrama de dispersión de Y respecto a las X
+
+```{r}
+df %>% 
+  gather(var,val,1:3) %>% 
+  ggplot(.,aes(val,y,color=var))+
+  geom_point()+
+  facet_wrap(~var, scales = "free")
+
+```
+
+claramente se ven 10 casos con un comportamiento patológico. 
+
+
+## Ajuste modelo lineal
+
+
+```{r}
+
+modelo <- lm(y~x1+x2+x3,data = df)
+
+summary(modelo)
+tidy(modelo)
+glance(modelo)
+au <- augment(modelo,df)
+
+```
+
+
+¿Son significativas las vairables?
+
+
+```{r}
+ggplot(au, aes(.fitted, .resid)) +
+  geom_point()+
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE)
+```
+
+
+## Modelo robusto
+
+```{r}
+modelo_robusto <- lmRob(y~x1+x2+x3,data = df)
+
+summary(modelo_robusto)
+tidy(modelo_robusto)
+glance(modelo_robusto)
+
+au <- augment(modelo_robusto,df)
+```
+
+
+En el modelo robusto ¿Son significativas las variables?
+
+
+```{r}
+ggplot(au, aes(.fitted, .resid)) +
+  geom_point()+
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE)
+```
+
+
+Los residuos están mucho más cercanos a 0 para las observaciones no patológicas.
+
+
+## Bootstrap
+
+Bootstrapeamos. Para ello, primero extraiga una muestra de tamaño 100 con reemplazo de la muestra ${(X_{1i} , X_{2i} , X_{3i} , Y_i )}_{1≤i≤n}$ . Ajuste ambos estimadores (clásico y robusto) a esa misma muestra bootstrapeada. Guarde los ocho coeficientes estimados.
+
+Para esto utilizamos la librería `library(rsample)`
+
+```{r}
+
+ajuste_lineal_simple <- function(df){
+  lm(y~x1+x2+x3,data = df)
+}
+
+ajuste_lineal_robusto <- function(df){
+  lmRob(y~x1+x2+x3,data = df)
+}
+
+muestras_bootstrapeadas <- bootstraps(df,times = 100)
+
+muestras_bootstrapeadas <- muestras_bootstrapeadas %>% 
+mutate(lm_simple = map(muestras_bootstrapeadas$splits, ajuste_lineal_simple),
+       lm_rob = map(muestras_bootstrapeadas$splits, ajuste_lineal_robusto))
+
+
+muestras_bootstrapeadas
+```
+
+```{r}
+parametros_lm <- muestras_bootstrapeadas %>% 
+  mutate(tdy = map(lm_simple, tidy)) %>% 
+  unnest(tdy, .drop = TRUE) %>% 
+  mutate(modelo = "lm") %>% 
+  select(id,term,estimate,modelo)
+
+parametros_lmRob <- muestras_bootstrapeadas %>% 
+  mutate(tdy = map(lm_rob, tidy)) %>% 
+  unnest(tdy, .drop = TRUE) %>% 
+  mutate(modelo = "lm_rob") %>% 
+  select(id,term,estimate,modelo)
+
+parametros <- bind_rows(parametros_lm,parametros_lmRob)
+
+```
+
+
+```{r}
+parametros_verdaderos <- data_frame(term=c("(Intercept)","x1","x2","x3"),valor=c(4,1.5,8,-2))
+
+ggplot(parametros, aes(estimate, fill = modelo))+
+  geom_histogram(position= "dodge")+
+  geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
+  scale_color_manual(values = "darkolivegreen","")+
+  theme_minimal()+
+  scale_fill_gdocs()+
+  facet_wrap(~term,scales = "free")
+```
+
+```{r}
+ggplot(parametros, aes(estimate,y=modelo, fill = modelo))+
+  geom_density_ridges(alpha=.6)+
+  theme_minimal()+
+  geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
+  scale_color_manual(values = "darkolivegreen","")+
+  scale_fill_gdocs()+
+  facet_wrap(~term,scales = "free")
+```
+
+
+
+
+
