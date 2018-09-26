@@ -1,0 +1,316 @@
+% Bootstrap resampling
+% Germain Salvato-Vallverdu - mai 2009
+% http://germain.salvato-vallverdu.perso.sfr.fr
+\documentclass[11pt,a4paper,landscape]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage[top=3cm,left=2cm,right=2cm,bottom=3cm]{geometry}
+
+\usepackage{tikz}
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\begin{comment}
+:Title:  Bootstrap resampling
+
+Bootstrap technics is a resampling of a limited length sample
+without any new data. This method allows us to get new
+informations on statistical uncertaintes due to limited
+length sample.
+ 
+\end{comment}
+
+\usetikzlibrary{shadows} 
+
+\usepackage{hyperref}
+\hypersetup{%
+pdfauthor={Germain Salvato-Vallverdu},%
+pdftitle={bootstrap method},% 
+pdfkeywords={Tikz,latex,bootstrap,uncertaintes},%
+pdfcreator={PDFLaTeX},%
+pdfproducer={PDFLaTeX},%
+}
+
+\title{Bootstrap method}
+\author{Germain Salvato-Vallverdu}
+
+\pagestyle{empty}
+
+\begin{document}
+\sffamily
+
+\begin{preview}
+\begin{center}
+
+\begin{tikzpicture}[scale=1.4]
+
+% style
+\tikzstyle{rboule} = [circle,scale=0.7,ball color=red]
+\tikzstyle{gboule} = [circle,scale=0.7,ball color=green]
+\tikzstyle{bboule} = [circle,scale=0.7,ball color=blue]
+\tikzstyle{nboule} = [circle,scale=0.7,ball color=black]
+\tikzstyle{sample} = [->,thin]
+
+% complete element space
+\path[draw,<-,thick] (0,5.6) -- (4,5.6);
+\path (6,5.6) node {Población};
+\path[draw,->,thick] (8,5.6) -- (12,5.6);
+
+\path ( 0.00,5.25) node[bboule] (i01) {};
+\path ( 0.25,5.25) node[rboule] (i02) {};
+\path ( 0.50,5.25) node[gboule] (i03) {};
+\path ( 0.75,5.25) node[bboule] (i04) {};
+\path ( 1.00,5.25) node[rboule] (i05) {};
+\path ( 1.25,5.25) node[bboule] (i06) {};
+\path ( 1.50,5.25) node[bboule] (i07) {};
+\path ( 1.75,5.25) node[rboule] (i08) {};
+\path ( 2.00,5.25) node[bboule] (i09) {};
+\path ( 2.25,5.25) node[rboule] (i10) {};
+\path ( 2.50,5.25) node[bboule] (i11) {};
+\path ( 2.75,5.25) node[bboule] (i12) {};
+\path ( 3.00,5.25) node[nboule] (i13) {};
+\path ( 3.25,5.25) node[rboule] (i14) {};
+\path ( 3.50,5.25) node[bboule] (i15) {};
+\path ( 3.75,5.25) node[bboule] (i16) {};
+\path ( 4.00,5.25) node[rboule] (i17) {};
+\path ( 4.25,5.25) node[rboule] (i18) {};
+\path ( 4.50,5.25) node[bboule] (i19) {};
+\path ( 4.75,5.25) node[bboule] (i20) {};
+\path ( 5.00,5.25) node[rboule] (i21) {};
+\path ( 5.25,5.25) node[bboule] (i22) {};
+\path ( 5.50,5.25) node[rboule] (i23) {};
+\path ( 5.75,5.25) node[bboule] (i24) {};
+\path ( 6.00,5.25) node[bboule] (i25) {};
+\path ( 6.25,5.25) node[rboule] (i26) {};
+\path ( 6.50,5.25) node[rboule] (i27) {};
+\path ( 6.75,5.25) node[gboule] (i28) {};
+\path ( 7.00,5.25) node[rboule] (i29) {};
+\path ( 7.25,5.25) node[bboule] (i30) {};
+\path ( 7.50,5.25) node[bboule] (i31) {};
+\path ( 7.75,5.25) node[nboule] (i32) {};
+\path ( 8.00,5.25) node[bboule] (i33) {};
+\path ( 8.25,5.25) node[rboule] (i34) {};
+\path ( 8.50,5.25) node[gboule] (i35) {};
+\path ( 8.75,5.25) node[bboule] (i36) {};
+\path ( 9.00,5.25) node[bboule] (i37) {};
+\path ( 9.25,5.25) node[rboule] (i38) {};
+\path ( 9.50,5.25) node[bboule] (i39) {};
+\path ( 9.75,5.25) node[rboule] (i40) {};
+\path (10.00,5.25) node[bboule] (i41) {};
+\path (10.25,5.25) node[rboule] (i42) {};
+\path (10.50,5.25) node[bboule] (i43) {};
+\path (10.75,5.25) node[bboule] (i44) {};
+\path (11.00,5.25) node[rboule] (i45) {};
+\path (11.25,5.25) node[nboule] (i46) {};
+\path (11.50,5.25) node[rboule] (i47) {};
+\path (11.75,5.25) node[bboule] (i48) {};
+\path (12.00,5.25) node[bboule] (i49) {};
+
+% title initial sample
+\path (3.5,3.75) node[anchor=east] 
+	{\parbox{0.15\textwidth}{\centering Muestra inicial de N elementos}};
+
+% labels
+\path (3.5,3)   node[anchor=east] {1};
+\path (3.5,2.5) node[anchor=east] {2};
+\path (3.5,2.0) node[anchor=east] {3};
+\path (3.5,1.5) node[anchor=east] {4};
+\path (3.5,0.5) node[anchor=east] {$N_b$};
+
+\path (3.5,1) node[anchor=east] {$\vdots$};
+\path[draw,dashed] (4,1) -- (8.25,1);
+
+\path[draw,<->,thick] (2.9,0.5) -- (2.9,3) node[anchor=east,pos=0.5] 
+	{\parbox{0.1\textwidth}{\centering $N_b$ muestras de \textit{bootstrap}}};
+
+% initial sample
+\path ( 3.75,3.75) node[bboule] (j01) {};               
+\path ( 4.00,3.75) node[bboule] (j02) {};               
+\path ( 4.25,3.75) node[rboule] (j03) {};               
+\path ( 4.50,3.75) node[rboule] (j04) {};               
+\path ( 4.75,3.75) node[rboule] (j05) {};               
+\path ( 5.00,3.75) node[nboule] (j06) {};               
+\path ( 5.25,3.75) node[bboule] (j07) {};               
+\path ( 5.50,3.75) node[rboule] (j08) {};               
+\path ( 5.75,3.75) node[bboule] (j09) {};               
+\path ( 6.00,3.75) node[bboule] (j10) {};               
+\path ( 6.25,3.75) node[bboule] (j11) {};               
+\path ( 6.50,3.75) node[rboule] (j12) {};               
+\path ( 6.75,3.75) node[gboule] (j13) {};               
+\path ( 7.00,3.75) node[rboule] (j14) {};               
+\path ( 7.25,3.75) node[gboule] (j15) {};               
+\path ( 7.50,3.75) node[bboule] (j16) {};               
+\path ( 7.75,3.75) node[rboule] (j17) {};               
+\path ( 8.00,3.75) node[rboule] (j18) {};               
+\path ( 8.25,3.75) node[bboule] (j19) {};               
+\path ( 8.50,3.75) node[rboule] (j20) {}; 
+
+% arrows from the complete space to the initial sample
+\path[sample] (i01.south) edge[out=-60,in=120] (j01.north west);
+\path[sample] (i04.south) edge[out=-60,in=120] (j02.north west);
+\path[sample] (i05.south) edge[out=-60,in=120] (j03.north west);
+\path[sample] (i08.south) edge[out=-60,in=120] (j04.north west);
+\path[sample] (i10.south) edge[out=-60,in=120] (j05.north west);
+\path[sample] (i13.south) edge[out=-60,in=120] (j06.north west);
+\path[sample] (i16.south) edge[out=-90,in=90] (j07.north);
+\path[sample] (i18.south) edge[out=-90,in=90] (j08.north);
+\path[sample] (i20.south) edge[out=-90,in=90] (j09.north);
+\path[sample] (i24.south) edge[out=-90,in=90] (j10.north);
+\path[sample] (i25.south) edge[out=-90,in=90] (j11.north);
+\path[sample] (i27.south) edge[out=-90,in=90] (j12.north);
+\path[sample] (i28.south) edge[out=-90,in=90] (j13.north);
+\path[sample] (i34.south) edge[out=-90,in=90] (j14.north);
+\path[sample] (i35.south) edge[out=-90,in=90] (j15.north);
+\path[sample] (i37.south) edge[out=-90,in=60] (j16.north east);
+\path[sample] (i40.south) edge[out=-90,in=60] (j17.north east);
+\path[sample] (i42.south) edge[out=-90,in=60] (j18.north east);
+\path[sample] (i44.south) edge[out=-90,in=60] (j19.north east);
+\path[sample] (i47.south) edge[out=-90,in=60] (j20.north east);
+
+% bootstrap 1
+\path ( 3.75, 3.0) node[bboule] {};                    
+\path ( 4.00, 3.0) node[bboule] {};                    
+\path ( 4.25, 3.0) node[bboule] {};                    
+\path ( 4.50, 3.0) node[gboule] {};                    
+\path ( 4.75, 3.0) node[rboule] {};                    
+\path ( 5.00, 3.0) node[bboule] {};                    
+\path ( 5.25, 3.0) node[gboule] {};                    
+\path ( 5.50, 3.0) node[bboule] {};                    
+\path ( 5.75, 3.0) node[rboule] {};                    
+\path ( 6.00, 3.0) node[rboule] {};                    
+\path ( 6.25, 3.0) node[bboule] {};                    
+\path ( 6.50, 3.0) node[rboule] {};                    
+\path ( 6.75, 3.0) node[rboule] {};                    
+\path ( 7.00, 3.0) node[rboule] {};                    
+\path ( 7.25, 3.0) node[bboule] {};                    
+\path ( 7.50, 3.0) node[nboule] {};                    
+\path ( 7.75, 3.0) node[rboule] {};                    
+\path ( 8.00, 3.0) node[rboule] {};                    
+\path ( 8.25, 3.0) node[gboule] {};                    
+\path ( 8.50, 3.0) node[gboule] (b1) {};                    
+                                                       
+% bootstrap 2
+\path ( 3.75, 2.5) node[bboule] {};                    
+\path ( 4.00, 2.5) node[bboule] {};                    
+\path ( 4.25, 2.5) node[rboule] {};                    
+\path ( 4.50, 2.5) node[nboule] {};                    
+\path ( 4.75, 2.5) node[rboule] {};                    
+\path ( 5.00, 2.5) node[bboule] {};                    
+\path ( 5.25, 2.5) node[bboule] {};                    
+\path ( 5.50, 2.5) node[rboule] {};                    
+\path ( 5.75, 2.5) node[rboule] {};                    
+\path ( 6.00, 2.5) node[rboule] {};                    
+\path ( 6.25, 2.5) node[bboule] {};                    
+\path ( 6.50, 2.5) node[rboule] {};                    
+\path ( 6.75, 2.5) node[rboule] {};                    
+\path ( 7.00, 2.5) node[rboule] {};                    
+\path ( 7.25, 2.5) node[rboule] {};                    
+\path ( 7.50, 2.5) node[rboule] {};                    
+\path ( 7.75, 2.5) node[bboule] {};                    
+\path ( 8.00, 2.5) node[bboule] {};                    
+\path ( 8.25, 2.5) node[bboule] {};                    
+\path ( 8.50, 2.5) node[bboule] (b2) {};                    
+                                                       
+% bootstrap 3
+\path ( 3.75, 2.0) node[rboule] {};                    
+\path ( 4.00, 2.0) node[bboule] {};                    
+\path ( 4.25, 2.0) node[rboule] {};                    
+\path ( 4.50, 2.0) node[rboule] {};                    
+\path ( 4.75, 2.0) node[bboule] {};                    
+\path ( 5.00, 2.0) node[bboule] {};                    
+\path ( 5.25, 2.0) node[bboule] {};                    
+\path ( 5.50, 2.0) node[bboule] {};                    
+\path ( 5.75, 2.0) node[rboule] {};                    
+\path ( 6.00, 2.0) node[rboule] {};                    
+\path ( 6.25, 2.0) node[gboule] {};                    
+\path ( 6.50, 2.0) node[gboule] {};                    
+\path ( 6.75, 2.0) node[rboule] {};                    
+\path ( 7.00, 2.0) node[rboule] {};                    
+\path ( 7.25, 2.0) node[nboule] {};                    
+\path ( 7.50, 2.0) node[bboule] {};                    
+\path ( 7.75, 2.0) node[rboule] {};                    
+\path ( 8.00, 2.0) node[bboule] {};                    
+\path ( 8.25, 2.0) node[rboule] {};                    
+\path ( 8.50, 2.0) node[nboule] (b3) {};
+
+% bootstrap 4
+\path ( 3.75, 1.5) node[nboule] {};
+\path ( 4.00, 1.5) node[bboule] {};
+\path ( 4.25, 1.5) node[rboule] {};
+\path ( 4.50, 1.5) node[gboule] {};
+\path ( 4.75, 1.5) node[bboule] {};
+\path ( 5.00, 1.5) node[gboule] {};
+\path ( 5.25, 1.5) node[bboule] {};
+\path ( 5.50, 1.5) node[rboule] {};
+\path ( 5.75, 1.5) node[bboule] {};
+\path ( 6.00, 1.5) node[rboule] {};
+\path ( 6.25, 1.5) node[gboule] {};
+\path ( 6.50, 1.5) node[nboule] {};
+\path ( 6.75, 1.5) node[bboule] {};
+\path ( 7.00, 1.5) node[rboule] {};
+\path ( 7.25, 1.5) node[rboule] {};
+\path ( 7.50, 1.5) node[rboule] {};
+\path ( 7.75, 1.5) node[rboule] {};
+\path ( 8.00, 1.5) node[bboule] {};
+\path ( 8.25, 1.5) node[bboule] {};
+\path ( 8.50, 1.5) node[gboule] (b4) {};
+
+% bootstrap N
+\path ( 3.75, 0.5) node[nboule] {};
+\path ( 4.00, 0.5) node[gboule] {};
+\path ( 4.25, 0.5) node[rboule] {};
+\path ( 4.50, 0.5) node[rboule] {};
+\path ( 4.75, 0.5) node[bboule] {};
+\path ( 5.00, 0.5) node[rboule] {};
+\path ( 5.25, 0.5) node[bboule] {};
+\path ( 5.50, 0.5) node[gboule] {};
+\path ( 5.75, 0.5) node[bboule] {};
+\path ( 6.00, 0.5) node[bboule] {};
+\path ( 6.25, 0.5) node[gboule] {};
+\path ( 6.50, 0.5) node[rboule] {};
+\path ( 6.75, 0.5) node[rboule] {};
+\path ( 7.00, 0.5) node[gboule] {};
+\path ( 7.25, 0.5) node[bboule] {};
+\path ( 7.50, 0.5) node[bboule] {};
+\path ( 7.75, 0.5) node[bboule] {};
+\path ( 8.00, 0.5) node[rboule] {};
+\path ( 8.25, 0.5) node[bboule] {};
+\path ( 8.50, 0.5) node[gboule] (bN) {};
+
+% arrows
+\path[sample] (j20.east) edge [out=0, in=60] (b1.east);
+\path[sample] (j20.east) edge [out=0, in=60] (b2.east);
+\path[sample] (j20.east) edge [out=0, in=60] (b3.east);
+\path[sample] (j20.east) edge [out=0, in=60] (b4.east);
+\path[sample] (j20.east) edge [out=0, in=60] (bN.east);
+
+\end{tikzpicture}
+
+\end{center}
+
+\vspace{\baselineskip}
+
+\begin{center}
+
+\begin{tikzpicture}
+
+\definecolor{monred}{rgb}{0.79 0.0 0.1}
+
+\tikzstyle{rec} = [rectangle,rounded corners,ultra thick,draw=monred!90,fill=white] 
+
+\node[rec,text=black!80,inner sep=3mm,drop shadow] (th)
+	{\parbox{0.6\textwidth}{
+	Cuando N tiende a infinito, la distribución de los valores promedio calculados a partir de muestras bootstrapeadas es igual a la distribución de los valores promedio obtenidos de TODAS las muestras con N elementos que pueden construirse a partir de la población. Por lo tanto, el ancho de la distribución proporciona una evaluación de la calidad de la muestra.}};
+
+\node[rec,text=monred!95,anchor=south west,xshift=3mm,yshift=-1mm] 
+	at (th.north west) {\small Teorema \scriptsize (B. Efron, Ann. Statist. 1979)};
+
+\end{tikzpicture}
+
+\end{center}
+\end{preview}
+\end{document}

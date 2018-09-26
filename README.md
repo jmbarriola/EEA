@@ -30,6 +30,7 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 ### Clase 6:
 
 - Regresión Lineal Simple (segunda parte)
+- Bootstrap
 
 ### Clase 7:
 
