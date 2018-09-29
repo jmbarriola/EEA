@@ -1,6 +1,12 @@
 ---
 title: "Ejercicio Bootstrap"
-output: html_notebook
+output: 
+  html_notebook: 
+    fig_height: 12
+    fig_width: 10
+    theme: spacelab
+    toc: yes
+    toc_float: yes
 ---
 
 
@@ -104,6 +110,7 @@ En el segundo gráfico, podemos ver el detalle del comportamiento de las Y respe
 
 ## Ajuste modelo lineal
 
+### Modelo clásico
 
 ```{r}
 
@@ -119,11 +126,7 @@ au <- augment(modelo,df)
 
 ¿Son significativas las variables?
 
-
-
-
-
-## Modelo robusto
+### Modelo robusto
 
 ```{r}
 modelo_robusto <- lmRob(y~x1+x2+x3,data = df)
@@ -142,7 +145,7 @@ _nota: Para el modelo lmRob no esta implementado `confint()`, por lo que no pode
 
 
 
-## Gráficos de los residuos
+#### Gráficos de los residuos
 
 Notemos las diferencias en los gráficos de los residuos de los dos modelos:
 
@@ -195,6 +198,8 @@ en los QQ-plots:
 - `lm()`: El resto de las observaciones tampoco sigue la distribución teórica, sino que en los cuantiles más altos hay una sobre-estimación de los residuos.
 - `lmRob()`: Hace un buen trabajo para las observaciones no patológicas
 
+
+
 ## Bootstrap
 
 
@@ -206,7 +211,53 @@ en los QQ-plots:
 
 - Ajustamos ambos estimadores (clásico y robusto) a cada muestra bootstrapeada.
 
-Para esto utilizamos la librería `library(rsample)`
+
+### Bootstrap casero
+
+Primero hagamos un sampleo manual, para comprender los pasos.
+
+Queremos tomar nuestro dataframe y construir 100 dataframes de la misma forma, donde cada observación se haya seleccionado de forma aleatoria de nuestro dataset original
+
+```{r}
+set.seed(1234)
+muestras_bootstrapeadas <- list()
+#quiero construir 100 muestras bootstrpeadas. Podrían ser más
+for (i in 1:100) { 
+  #quiero que los dataset que muestree tengan el mismo tamaño que el dataset original
+  muestra_i <- data.frame()
+  index_i <- c()
+  for (j in 1:nrow(df)) { 
+    #eligo el número indice de la muestra de forma aleatoria entre los indices de mi set original
+    index <- sample(rownames(df),1)
+    #selecciono de mi df el elemento con el indice correspondiente
+    muestra_unitaria <- df[index,]
+    #agrego la observación a la muestra i
+    muestra_i <- bind_rows(muestra_i,muestra_unitaria)
+    #guardo el indice
+    index_i <- c(index_i,index)
+  }
+  bootstrap_i <- list("df"=muestra_i, "indices" = index_i)
+  muestras_bootstrapeadas[[i]] <- bootstrap_i
+}
+
+```
+
+
+El resultado es una lista de 100 elementos, cada uno de los cuales es una muestra reconstruida a partir de la muestra original, donde tomamos los elementos __con reposición__: esto significa que podemos tomar más de una vez una observación.
+
+Podemos ver esto revisando los índices de la primera muestra:
+
+
+```{r }
+data.frame(table(muestras_bootstrapeadas[[1]]$indices)) %>% 
+  arrange(-Freq)
+```
+
+por ejemplo, la observación 85 se tomo seis veces, la 56 cinco veces, etc. 
+
+### Tidyverse al rescate
+
+Sin embargo, hay formas más _tidy_ de hacer un bootstrap. Para esto utilizamos la librería `library(rsample)`
 
 ```{r}
 muestras_bootstrapeadas <- bootstraps(df,times = 100)
@@ -222,10 +273,13 @@ Tomemos un elemento para ver qué tiene dentro
 muestras_bootstrapeadas %>% 
   filter(id=="Bootstrap001") %$%
   splits[[1]][[1]]
+```
 
-table(muestras_bootstrapeadas %>% 
+```{r}
+data.frame(table(muestras_bootstrapeadas %>% 
   filter(id=="Bootstrap001") %$%
-  splits[[1]][[2]])
+  splits[[1]][[2]])) %>% 
+  arrange(-Freq)
 
 ```
 
@@ -254,8 +308,8 @@ Con esto podemos calcular el ajuste lineal y el ajuste robusto para cada una de 
 
 ```{r}
 muestras_bootstrapeadas <- muestras_bootstrapeadas %>% 
-mutate(lm_simple = map(muestras_bootstrapeadas$splits, ajuste_lineal_simple),
-       lm_rob = map(muestras_bootstrapeadas$splits, ajuste_lineal_robusto))
+mutate(lm_simple = map(splits, ajuste_lineal_simple),
+       lm_rob = map(splits, ajuste_lineal_robusto))
 
 
 muestras_bootstrapeadas
@@ -267,22 +321,14 @@ Para recuperar los parámetros de cada una de las estimaciones, vamos a realizar
 
 
 ```{r}
-parametros_lm <- muestras_bootstrapeadas %>% 
-  mutate(tdy = map(lm_simple, tidy)) %>% 
-  unnest(tdy, .drop = TRUE) %>% 
-  mutate(modelo = "lm") %>% 
-  select(id,term,estimate,modelo)
 
-parametros_lmRob <- muestras_bootstrapeadas %>% 
-  mutate(tdy = map(lm_rob, tidy)) %>% 
-  unnest(tdy, .drop = TRUE) %>% 
-  mutate(modelo = "lm_rob") %>% 
-  select(id,term,estimate,modelo)
-
-parametros <- bind_rows(parametros_lm,parametros_lmRob)
-
+parametros <- muestras_bootstrapeadas %>%
+  gather(3:4) %>% 
+  mutate(tdy = map(statistic,tidy)) %>% 
+  unnest(tdy, .drop=TRUE)
 
 parametros
+
 ```
 
 
@@ -291,22 +337,24 @@ Con todas estas estimaciones podemos graficar los resultados
 ```{r}
 parametros_verdaderos <- data_frame(term=c("(Intercept)","x1","x2","x3"),valor=c(4,1.5,8,-2))
 
-ggplot(parametros, aes(estimate, fill = modelo))+
+ggplot(parametros, aes(estimate, fill = model))+
   geom_histogram(position= "dodge")+
   geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
   scale_color_manual(values = "darkolivegreen","")+
   theme_minimal()+
   scale_fill_gdocs()+
+  theme(legend.position = "bottom")+
   facet_wrap(~term,scales = "free")
 ```
 
 ```{r}
-ggplot(parametros, aes(estimate,y=modelo, fill = modelo))+
+ggplot(parametros, aes(estimate,y=model, fill = model))+
   geom_density_ridges(alpha=.6)+
   theme_minimal()+
   geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
   scale_color_manual(values = "darkolivegreen","")+
   scale_fill_gdocs()+
+  theme(legend.position = "bottom")+
   facet_wrap(~term,scales = "free")
 ```
 
