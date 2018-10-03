@@ -1,0 +1,249 @@
+---
+title: "Regresion Logistica"
+output: html_notebook
+---
+
+```{r, echo=TRUE, message=FALSE}
+library(dplyr)
+library(broom)
+library(ggplot2)
+library(ISLR)
+library(GGally)
+library(modelr)
+library(pROC)
+library(cowplot)
+library(OneR)
+library(rlang)
+library(purrr)
+```
+
+La regresión logística es útil para problemas de predicción de clases. El problema que vamos a tratar de resolver es predecir si una persona va defaultear su deuda de tarjeta de crédito en base a ciertos predictores.
+
+##Conjunto de datos
+
+Este conjunto de datos proviene de la librería ISLR (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
+
+```{r, echo=FALSE}
+default <- Default
+glimpse(default)
+```
+
+Tiene 4 variables: 
+
+* **default**: La clase que queremos predecir
+* **student**: Binaria que indica si la persona es estudiante
+* **balance**: Balance promedio que le queda a la persona luego de sus pagos mensuales
+* **income**: Ingreso de la persona
+
+##Exploratorias
+
+Analicemos la distribución de la clase
+
+```{r, echo=FALSE}
+default %>% group_by(default) %>% summarise(numero_casos=n())
+```
+
+Vemos que estamos trabajando con un problema de clasificación con un claro desbalance de clase.
+
+Realizamos un gráfico exploratorio completo para ver el comportamiento y las relaciones entre las variables. El color rojo designa a quienes no defaultean y el azul a los que sí.
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
+```
+
+¿Qué pueden decir de la relación entre balance y default?
+¿Y entre income y balance?
+¿Cuáles parecen ser buenas variables para predecir la probabilidad de default de una persona?
+
+## Problema
+
+Queremos estimar $P(Default=Yes|X)=P(X)$ para cada individuo y partir de ello poder definir un punto de corte para predecir quienes son los que van a entrar en default.
+
+### Regresión lineal
+
+En este caso estamos modelando la probabilidad de la siguiente manera: 
+
+$P(X)= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
+
+Veamos que tan bueno es el modelo lineal para esto, usando balance como predictor.
+
+```{r}
+test_mco <- default %>% mutate(default=as.numeric(default)) %>% 
+              lm(formula = default~balance, data = .) 
+
+test_mco %>% tidy()
+test_mco %>% glance()
+```
+
+Ambos estimadores son significativos y el test de significatividad global del modelo también es significativo.
+Veamos un gráfico de nuestro modelo
+
+```{r, echo=FALSE}
+ggplot(default, aes(balance, default)) + geom_point(aes(color=default)) +
+  geom_abline(intercept = 0.925, slope = 0.00013, color='forestgreen', size=2) + 
+  labs(title="Modelo lineal simple") +
+  theme_bw()
+```
+
+Parece tener bastantes problemas para estimar la probabilidad de default de los individuos. Por ejemplo, vemos que hay varios individuos a los cuales les asigna una probabilidad negativa.
+
+### Regresión logística
+
+Para evitar estos problemas, usamos la **funcion logistica**
+
+$P(X)= \frac{e^{\beta_0 + \sum\limits_{j=1}^p \beta_j X}}{1+e^{\beta_0 + \sum\limits_{j=1}^p \beta_j X}}$
+
+El lado derecho se llama **expit**
+
+Esta funcion acota el resultado entre 0 y 1, lo cual es mucho mas adecuado para modelar una probabilidad.
+
+Luego de hacer algunas operaciones, podemos llegar a la expresion:
+
+$\log {\frac{P(X)}{1-P(x)}}= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
+
+El lado izquierdo es el logaritmo de los **odds** y se llama **logit**
+
+## Creacion de formulas
+
+Para aplicar la regresion logistica primero usamos la funcion _formulas_ del paquete **modelr** para crear un objeto que contiene todas las formulas que vamos a utilizar.
+
+```{r}
+logit_formulas <- formulas(.response = ~default,
+                         bal= ~balance,
+                         stud= ~student,
+                         inc= ~income,
+                         bal_stud=~balance+student,
+                         bal_inc=~balance+income,
+                         stud_inc=~student+income,
+                         full= ~balance + income + student
+                         )
+```
+
+## Modelos simples
+
+Probamos los primeros tres modelos, aquellos que tienen un único predictor. Usamos la función _tidy_ para obtener los parámetros estimados para estos tres modelos.
+
+```{r}
+get_Logit_coef <- function(formula, dataset) {
+  logit <- glm(formula=formula, family = 'binomial', data = dataset) %>% tidy()
+  return(logit)
+}
+
+simple_logit = NULL
+
+for (i in c(1:3)) {
+  formula= logit_formulas[[i]]
+  logit =get_Logit_coef(formula, default)
+  simple_logit = rbind(simple_logit, logit)
+}
+
+simple_logit
+```
+
+¿Son significativos?
+¿Qué interpretación pueden darle a estos valores?
+
+##Modelo completo
+
+Ahora probamos con un modelo que utiliza las tres predictoras
+
+```{r}
+glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default) %>% tidy() %>% mutate(p.value=round(p.value,4))
+glm_full  
+```
+
+¿Que cambios hay respecto a los 3 modelos individuales previos?
+
+##Evaluacion de todos los modelos
+
+Creamos una función que utiliza la función _glance_ para traernos información relevante para el diagnóstico del modelo.
+
+Usamos la función *map_dfr* para aplicar nuestra función a todas las fórmulas que creamos previamente y juntar los resultados en un dataframe. Por último, ordenamos las modelos por el deviance.
+
+```{r}
+evaluate_logit <- function(formula, dataset=default){
+  glm <- glm(formula=formula, family = 'binomial', data = dataset) %>% glance() %>% mutate(formula=paste(as.character(formula), collapse=" "))
+  return(glm)
+}
+
+logit_eval = map_dfr(logit_formulas, evaluate_logit)
+
+logit_eval %>% select(-c(df.null)) %>% arrange(deviance)
+
+```
+
+El modelo que utiliza las 3 variables es el que minimiza el deviance. 
+Los 3 últimos modelos reducen muy poco el deviance respecto a la deviance nula.
+
+## Graficos de evaluacion
+
+Realizamos los graficos para el modelo completo y uno de los modelos con mayor deviance (student+income).
+
+En este caso estamos:
+
+1) Creando el modelo
+2) Aplicando la función __predict.glm__ con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
+3) Creamos la curva ROC con la librería **pROC**
+
+```{r}
+#Modelo full
+glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default)
+default['predicted_full']= predict.glm(glm_full, default, type='response') 
+roc_full <- roc(response=default$default, predictor=default$predicted_full)
+#Modelo student+income
+glm_bad <- glm(formula=logit_formulas$stud_inc, family = 'binomial', data = default)
+default['predicted_bad']= predict.glm(glm_bad, default, type='response') 
+roc_bad <- roc(response=default$default, predictor=default$predicted_bad)
+```
+
+#### Violin plots
+
+```{r}
+violin_full=ggplot(default, aes(x=default, y=predicted_full)) + geom_violin(aes(fill=default)) +theme_bw() +
+  guides(fill=FALSE) +
+  labs(title='Violin plot', subtitle='Modelo completo', y='Predicted probability')
+
+violin_bad=ggplot(default, aes(x=default, y=predicted_bad)) + geom_violin(aes(fill=default)) + theme_bw() +
+  guides(fill=FALSE) +
+  labs(title='Violin plot', subtitle='Modelo malo', y='Predicted probability')
+
+plot_grid(violin_bad, violin_full)
+```
+
+¿Qué es lo que estamos viendo en ellos? (Especial atención al eje de ordenadas)
+¿Cuál parece ser un punto de corte adecuado para cada modelo?
+
+#### Curvas ROC
+
+```{r}
+ggroc(list(full=roc_full, bad=roc_bad), size=1) + geom_abline(slope = 1, intercept = 1, linetype='dashed') + theme_bw() + labs(title='Curvas ROC', color='Modelo')
+```
+
+#### Gráfico de Hosmer-Lemeshow
+
+```{r, message=FALSE}
+
+Hosmer_Lemeshow_plot <- function(dataset, pred_column, group_column, bins, positive_value){
+  
+  dataset['group'] <- bin(dataset[pred_column], nbins = bins, method = 'l', labels=c(1:bins))
+  
+  positive_class <- dataset %>% filter(!!sym(group_column)==positive_value) %>% group_by(group) %>% count()
+  HL_df <- dataset %>% group_by(group) %>% summarise(pred=mean(!!sym(pred_column)), count=n()) %>%
+            inner_join(.,positive_class) %>%
+            mutate(freq=n/count)
+  
+  HM_plot <- ggplot(HL_df, aes(x=pred, y=freq)) + geom_point(aes(size=n), color='forestgreen') +
+                geom_text(aes(label=n),nudge_y = .05)+
+                geom_abline(slope = 1, intercept = 0, linetype='dashed') + 
+                theme_bw() +
+                labs(title='Hosmer-Lemeshow', size='Casos', x="Probabilidad Predicha", y="Frecuencia observada")
+  return(HM_plot)
+}
+
+Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes')
+
+```
+
+¿Qué vemos en este gráfico?
+
+¿Para qué valores parece existir una sobreestimación de la probabilidad? ¿Para cuáles subestimación?
