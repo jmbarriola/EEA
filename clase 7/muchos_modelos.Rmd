@@ -1,12 +1,12 @@
 ---
 title: Comparación de modelos^[Estas notas estan basadas en Hadley Wickham and Garrett Grolemund. 2017. R for Data Science Import, Tidy, Transform, Visualize, and Model Data (1st ed.). O'Reilly Media, Inc.  http://r4ds.had.co.nz.]
 output:
-  html_document:
-    theme: spacelab
   html_notebook:
     df_print: paged
     theme: spacelab
     toc_float: yes
+  html_document:
+    theme: spacelab
 ---
 
 # Muchos Modelos- Clase 1
@@ -29,7 +29,10 @@ knitr::opts_chunk$set(
 ```{r setup, message = FALSE}
 library(modelr)
 library(broom)
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(purrr)
 ```
 
 ## gapminder
@@ -96,16 +99,13 @@ by_country <- gapminder %>%
 by_country
 ```
 
-
-This creates a data frame that has one row per group (per country), and a rather unusual column: `data`. `data` is a list of data frames (or tibbles, to be precise).  This seems like a crazy idea: we have a data frame with a column that is a list of other data frames! I'll explain shortly why I think this is a good idea.
-
 Esto crea un dataframe que tiene una fila por grupo (por país) y una columna bastante inusual: `data` es una lista de dataframes 
 
 ```{r}
 by_country$data[[1]]
 ```
 
-Tengan en cuenta la diferencia entre DF agrupado estándar y un DF anidada: en un DF agrupada, cada fila es una observación; en un DF anidado, cada fila es un grupo. Otra forma de pensar sobre un conjunto de datos anidados es que ahora tenemos una metaobservación: una fila que representa el curso de tiempo completo para un país, en lugar de un único punto en el tiempo.
+Tengan en cuenta la diferencia entre DF agrupado estándar y un DF anidada: en un DF agrupado, cada fila es una observación; en un DF anidado, cada fila es un grupo. Otra forma de pensar sobre un conjunto de datos anidados es que ahora tenemos una metaobservación: una fila que representa el curso de tiempo completo para un país, en lugar de un único punto en el tiempo.
 
 
 ## List-columns
@@ -168,7 +168,7 @@ resids <- unnest(by_country, resids)
 resids
 ```
 
-Ahora sí podemos graficar los resiudos
+Ahora sí podemos graficar los residuos
 
 ```{r}
 resids %>% 
