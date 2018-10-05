@@ -1,12 +1,9 @@
 ---
 title: Comparación de modelos^[Estas notas estan basadas en Hadley Wickham and Garrett Grolemund. 2017. R for Data Science Import, Tidy, Transform, Visualize, and Model Data (1st ed.). O'Reilly Media, Inc.  http://r4ds.had.co.nz.]
 output:
-  html_notebook:
-    df_print: paged
-    theme: spacelab
-    toc_float: yes
   html_document:
     theme: spacelab
+    md_extensions: +emoji
 ---
 
 # Muchos Modelos- Clase 1
@@ -46,7 +43,11 @@ library(gapminder)
 gapminder
 ```
 
-En este estudio de caso, vamos a centrarnos solo en tres variables para responder a la pregunta "¿Cómo cambia la esperanza de vida (` lifeExp`) en el tiempo (`year`) para cada país (`country`)? ". Un buen lugar para comenzar es con una gráfico:
+En este estudio de caso, vamos a centrarnos solo en tres variables para responder a la pregunta
+
+> "¿Cómo cambia la esperanza de vida (` lifeExp`) en el tiempo (`year`) para cada país (`country`)? "
+ 
+ Un buen lugar para comenzar es con una gráfico:
 
 
 ```{r}
@@ -88,9 +89,16 @@ Como hacemos para ajustar un modelo por país?
 
 ## Nested data
 
-En lugar de copiar y pegar el código para cada país, podríamos utilizar una función. 
+Si queremos replicar lo de arriba para todos los países, podríamos:
 
-Este problema está estructurado de forma un poco diferente a lo que has visto antes. En lugar de repetir una acción para cada variable, queremos repetir una acción para cada país, un subconjunto de filas. Para hacer eso, necesitamos una nueva estructura de datos: el __nested dataframe__. Para crear un dataframe anidado, comenzamos con un DF agrupado y lo "anidamos":
+- copiar y pegar el código muchas veces `r emo::ji("rage")`
+- hacer un loop para que itere sobre el código `r emo::ji("disappointed")`
+- crear una función que haga el loop y nos devuelva las cosas de forma prolija `r emo::ji("unamused")`
+- usar un dataframe con `nested` data y `map()` `r emo::ji("grinning_face_with_big_eyes")`
+
+
+Ahora, en lugar de repetir una acción para cada variable, queremos repetir una acción para cada país, un subconjunto de filas. Para hacer eso, necesitamos el __nested dataframe__.
+
 ```{r}
 by_country <- gapminder %>% 
   group_by(country, continent) %>% 
@@ -105,7 +113,12 @@ Esto crea un dataframe que tiene una fila por grupo (por país) y una columna ba
 by_country$data[[1]]
 ```
 
-Tengan en cuenta la diferencia entre DF agrupado estándar y un DF anidada: en un DF agrupado, cada fila es una observación; en un DF anidado, cada fila es un grupo. Otra forma de pensar sobre un conjunto de datos anidados es que ahora tenemos una metaobservación: una fila que representa el curso de tiempo completo para un país, en lugar de un único punto en el tiempo.
+Tengan en cuenta la diferencia entre DF agrupado estándar y un DF anidado: 
+
+- en un DF agrupado, cada fila es una observación
+- en un DF anidado, cada fila es un grupo
+
+Otra forma de pensar sobre un conjunto de datos anidados es que ahora tenemos una __metaobservación__: una fila que representa el curso de tiempo completo para un país, en lugar de un único punto en el tiempo.
 
 
 ## List-columns
@@ -144,13 +157,12 @@ by_country %>%
   arrange(continent, country)
 ```
 
-Si su lista de DF y la lista de modelos eran objetos separados, Tenés que acordarte que cada vez que se reordena o filtra un elemento, necesitas volver a ordenar o filtrar todos los demás para mantenerlos sincronizados. Sino el código continuará funcionando, ¡pero __dará una respuesta incorrecta__!
+Si la lista de DF y la lista de modelos eran objetos separados, cada vez que se reordena o filtra un elemento, necesitas volver a ordenar o filtrar todos los demás para mantenerlos sincronizados. Sino el código continuará funcionando, ¡pero __dará una respuesta incorrecta__!s
 
-# Muchos Modelos- Clase 2
 
 ## Unnesting
 
-En las clases anteriores agregamos los residuos a un modelo, utilizando `add_residuals()`. Ahora necesitamos hacerlo sobre 142 modelos y 142 datasets: Necesitamos utilizar la función `map2()`
+Antes agregamos los residuos a un modelo, utilizando `add_residuals()`. Ahora necesitamos hacerlo sobre 142 modelos y 142 datasets: Necesitamos utilizar la función `map2()`
 
 
 ```{r}
@@ -161,12 +173,15 @@ by_country <- by_country %>%
 by_country
 ```
 
-¿Pero cómo puedes trazar una lista de marcos de datos? En lugar de luchar para responder a esa pregunta, volvamos la lista de marcos de datos a un marco de datos normal. Previamente utilizamos `nest()` para convertir un marco de datos normal en un marco de datos anidado, y ahora hacemos lo contrario con `unnest()`:
+Para analizar los resultados, volvemos la lista de DF a un DF normal. Previamente utilizamos `nest()` para convertir un DF normal en un DF anidado, y ahora hacemos lo contrario con `unnest()`:
 
 ```{r}
 resids <- unnest(by_country, resids)
 resids
 ```
+
+Noten que unnest me deja las variables agrupadoras, junto con el DF.
+
 
 Ahora sí podemos graficar los residuos
 
@@ -188,6 +203,9 @@ resids %>%
 ```
 
 Parece que hay cierto patrón en los residuos que estamos perdiendonos con el modelo lineal
+
+
+# Muchos Modelos- Clase 2
 
 
 ## Diagnóstico del modelo

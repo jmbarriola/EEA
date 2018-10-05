@@ -34,9 +34,9 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 
 ### Clase 7:
 
-- Diagnóstico para Regresión Lineal Simple
+- Muchos modelos (primera parte)
 
 
 ### Clase 8:
 
-- Regresión Lineal Múltiple
+- Muchos modelos (segunda parte)
