@@ -15,6 +15,7 @@ library(cowplot)
 library(OneR)
 library(rlang)
 library(purrr)
+library(caret)
 ```
 
 La regresión logística es útil para problemas de predicción de clases. El problema que vamos a tratar de resolver es predecir si una persona va defaultear su deuda de tarjeta de crédito en base a ciertos predictores.
@@ -23,7 +24,7 @@ La regresión logística es útil para problemas de predicción de clases. El pr
 
 Este conjunto de datos proviene de la librería ISLR (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
 
-```{r, echo=FALSE}
+```{r}
 default <- Default
 glimpse(default)
 ```
@@ -39,7 +40,7 @@ Tiene 4 variables:
 
 Analicemos la distribución de la clase
 
-```{r, echo=FALSE}
+```{r}
 default %>% group_by(default) %>% summarise(numero_casos=n())
 ```
 
@@ -47,7 +48,7 @@ Vemos que estamos trabajando con un problema de clasificación con un claro desb
 
 Realizamos un gráfico exploratorio completo para ver el comportamiento y las relaciones entre las variables. El color rojo designa a quienes no defaultean y el azul a los que sí.
 
-```{r, warning=FALSE, message=FALSE, echo=FALSE}
+```{r, warning=FALSE, message=FALSE}
 ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + theme_bw()
 ```
 
@@ -103,7 +104,7 @@ $\log {\frac{P(X)}{1-P(x)}}= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
 
 El lado izquierdo es el logaritmo de los **odds** y se llama **logit**
 
-## Creacion de formulas
+## Creación de fórmulas
 
 Para aplicar la regresion logistica primero usamos la funcion _formulas_ del paquete **modelr** para crear un objeto que contiene todas las formulas que vamos a utilizar.
 
@@ -154,7 +155,7 @@ glm_full
 
 ¿Que cambios hay respecto a los 3 modelos individuales previos?
 
-##Evaluacion de todos los modelos
+##Evaluación de todos los modelos
 
 Creamos una función que utiliza la función _glance_ para traernos información relevante para el diagnóstico del modelo.
 
@@ -175,9 +176,9 @@ logit_eval %>% select(-c(df.null)) %>% arrange(deviance)
 El modelo que utiliza las 3 variables es el que minimiza el deviance. 
 Los 3 últimos modelos reducen muy poco el deviance respecto a la deviance nula.
 
-## Graficos de evaluacion
+## Graficos de evaluación
 
-Realizamos los graficos para el modelo completo y uno de los modelos con mayor deviance (student+income).
+Realizamos los gráficos para el modelo completo y uno de los modelos con mayor deviance (student+income).
 
 En este caso estamos:
 
@@ -211,6 +212,7 @@ plot_grid(violin_bad, violin_full)
 ```
 
 ¿Qué es lo que estamos viendo en ellos? (Especial atención al eje de ordenadas)
+
 ¿Cuál parece ser un punto de corte adecuado para cada modelo?
 
 #### Curvas ROC
@@ -223,27 +225,69 @@ ggroc(list(full=roc_full, bad=roc_bad), size=1) + geom_abline(slope = 1, interce
 
 ```{r, message=FALSE}
 
-Hosmer_Lemeshow_plot <- function(dataset, pred_column, group_column, bins, positive_value){
+Hosmer_Lemeshow_plot <- function(dataset, predicted_column, class_column, bins, positive_value, color='forestgreen', nudge_x=0, nudge_y=0.05){
+  "Realiza un grafico de Hosmer-Lemeshow para un dataset"
   
-  dataset['group'] <- bin(dataset[pred_column], nbins = bins, method = 'l', labels=c(1:bins))
+  "* dataset: conjunto de datos
+   * predicted_column: columna con la probabilidad predicha
+   * class_column: columna con la clase a predecir
+   * possitive_value: valor de la clase a predecir
+   * bins: cantidad de grupos del gráfico
+   * color: color de los puntos
+   * nudge_x: desplazamiento de la etiqueta en el eje x
+   * nudge_y: desplazamiento de la etiqueta en el eje y"
   
-  positive_class <- dataset %>% filter(!!sym(group_column)==positive_value) %>% group_by(group) %>% count()
-  HL_df <- dataset %>% group_by(group) %>% summarise(pred=mean(!!sym(pred_column)), count=n()) %>%
+  # Asignar los grupos a las observaciones de acuerdo a la probabilidad predicha
+  dataset['group'] <- bin(dataset[predicted_column], nbins = bins, method = 'l', labels=c(1:bins))
+  
+  # Contar la cantidad de casos positivos por grupo
+  positive_class <- dataset %>% filter(!!sym(class_column)==positive_value) %>% group_by(group) %>% count()
+  
+  # Obtener la media de las predicciones por grupo
+  HL_df <- dataset %>% group_by(group) %>% summarise(pred=mean(!!sym(predicted_column)), count=n()) %>%
             inner_join(.,positive_class) %>%
             mutate(freq=n/count)
   
-  HM_plot <- ggplot(HL_df, aes(x=pred, y=freq)) + geom_point(aes(size=n), color='forestgreen') +
-                geom_text(aes(label=n),nudge_y = .05)+
+  # Gráfico 
+  HM_plot <- ggplot(HL_df, aes(x=pred, y=freq)) + geom_point(aes(size=n), color=color) +
+                geom_text(aes(label=n),nudge_y = nudge_y)+
                 geom_abline(slope = 1, intercept = 0, linetype='dashed') + 
                 theme_bw() +
                 labs(title='Hosmer-Lemeshow', size='Casos', x="Probabilidad Predicha", y="Frecuencia observada")
   return(HM_plot)
 }
 
-Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes')
-
+Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes') + labs(subtitle="Modelo completo")
+Hosmer_Lemeshow_plot(default, 'predicted_bad', 'default', 10, 'Yes', color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
 ```
 
-¿Qué vemos en este gráfico?
+¿Qué vemos en estos gráficos?
 
 ¿Para qué valores parece existir una sobreestimación de la probabilidad? ¿Para cuáles subestimación?
+
+## Punto de corte
+
+Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final del modelo debe consistir en asignar al individuo una clase predicha. En n uestro caso debemos establecer un punto de corte según el cual vamos a separar a los indivuos en quienes defaultean y quienes no.
+
+Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad y la especificidad para cada uno de ellos.
+
+```{r}
+prediction_metrics <- function(cutoff, predicted_column, dataset=default){
+  table <- dataset %>% mutate(predicted_class=if_else(!!sym(predicted_column)>cutoff, 'Yes', 'No') %>% as.factor())
+  cm <- confusionMatrix(table(table$default, table$predicted_class), positive = 'Yes') %>%
+    tidy() %>%
+    select(term, estimate) %>% 
+    filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>% 
+    mutate(cutoff=cutoff)
+  return(cm)
+}
+
+cutoffs = seq(0.05,0.95,0.05)
+logit_pred =map2_dfr(cutoffs, 'predicted_full', prediction_metrics) %>% mutate(term=as.factor(term))
+
+ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line() + geom_point() + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
+```
+
+¿Qué podemos observar en el gráfico?
+
+¿Podemos definir un buen punto de corte? ¿Cuál sería?
