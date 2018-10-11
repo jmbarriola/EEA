@@ -4,9 +4,8 @@ output: html_notebook
 ---
 
 ```{r, echo=TRUE, message=FALSE}
-library(dplyr)
+library(tidyverse)
 library(broom)
-library(ggplot2)
 library(ISLR)
 library(GGally)
 library(modelr)
@@ -22,7 +21,7 @@ La regresión logística es útil para problemas de predicción de clases. El pr
 
 ##Conjunto de datos
 
-Este conjunto de datos proviene de la librería ISLR (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
+Este conjunto de datos proviene de la librería [ISLR](http://www-bcf.usc.edu/%7Egareth/ISL/)  (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
 
 ```{r}
 default <- Default
@@ -56,6 +55,17 @@ ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_te
 ¿Y entre income y balance?
 ¿Cuáles parecen ser buenas variables para predecir la probabilidad de default de una persona?
 
+
+### Limpieza
+
+Para modelizar va a ser más necesario tener la variable default como numérica. 
+Definimos la variable como {0,1} para los valores {"No","Yes"}
+
+```{r}
+default <- default%>% mutate(default= case_when(default=="No"~0,
+                                                default=="Yes"~1))
+```
+
 ## Problema
 
 Queremos estimar $P(Default=Yes|X)=P(X)$ para cada individuo y partir de ello poder definir un punto de corte para predecir quienes son los que van a entrar en default.
@@ -69,10 +79,14 @@ $P(X)= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
 Veamos que tan bueno es el modelo lineal para esto, usando balance como predictor.
 
 ```{r}
-test_mco <- default %>% mutate(default=as.numeric(default)) %>% 
+test_mco <- default %>% 
               lm(formula = default~balance, data = .) 
 
-test_mco %>% tidy()
+```
+
+```{r}
+tdy <- test_mco %>% tidy()
+tdy
 test_mco %>% glance()
 ```
 
@@ -80,9 +94,11 @@ Ambos estimadores son significativos y el test de significatividad global del mo
 Veamos un gráfico de nuestro modelo
 
 ```{r, echo=FALSE}
-ggplot(default, aes(balance, default)) + geom_point(aes(color=default)) +
-  geom_abline(intercept = 0.925, slope = 0.00013, color='forestgreen', size=2) + 
+ggplot(default, aes(balance, default)) + 
+  geom_point(aes(color=factor(default))) +
+  geom_abline(intercept = tdy$estimate[1], slope = tdy$estimate[2], color='forestgreen', size=2) + 
   labs(title="Modelo lineal simple") +
+  lims(y=c(-1,2))+
   theme_bw()
 ```
 
@@ -109,14 +125,14 @@ El lado izquierdo es el logaritmo de los **odds** y se llama **logit**
 Para aplicar la regresion logistica primero usamos la funcion _formulas_ del paquete **modelr** para crear un objeto que contiene todas las formulas que vamos a utilizar.
 
 ```{r}
-logit_formulas <- formulas(.response = ~default,
-                         bal= ~balance,
-                         stud= ~student,
-                         inc= ~income,
-                         bal_stud=~balance+student,
-                         bal_inc=~balance+income,
-                         stud_inc=~student+income,
-                         full= ~balance + income + student
+logit_formulas <- formulas(.response = ~default, # único lado derecho de las formulas.
+                         bal= ~balance, 
+                         stud= ~student,  
+                         inc= ~income,  
+                         bal_stud=~balance+student, 
+                         bal_inc=~balance+income, 
+                         stud_inc=~student+income,  
+                         full= ~balance + income + student  
                          )
 ```
 
@@ -125,20 +141,35 @@ logit_formulas <- formulas(.response = ~default,
 Probamos los primeros tres modelos, aquellos que tienen un único predictor. Usamos la función _tidy_ para obtener los parámetros estimados para estos tres modelos.
 
 ```{r}
-get_Logit_coef <- function(formula, dataset) {
-  logit <- glm(formula=formula, family = 'binomial', data = dataset) %>% tidy()
-  return(logit)
-}
+# get_Logit_coef <- function(formula, dataset) {
+#   glm(formula=formula, family = 'binomial', data = dataset) %>% tidy()
+# }
+# 
+# simple_logit = NULL
+# 
+# for (i in c(1:3)) {
+#   formula= logit_formulas[[i]]
+#   logit =get_Logit_coef(formula, default)
+#   simple_logit = rbind(simple_logit, logit)
+# }
+# 
+# simple_logit
+```
 
-simple_logit = NULL
+```{r}
+models <- data_frame(logit_formulas) %>%
+  mutate( models = names(logit_formulas),
+         expresion = paste(logit_formulas)) %>% 
+  group_by(models,expresion) %>% 
+    mutate(mod = map(logit_formulas, ~  glm(as.formula(.),family = 'binomial', data = default)),
+           tidy = map(mod,tidy))
 
-for (i in c(1:3)) {
-  formula= logit_formulas[[i]]
-  logit =get_Logit_coef(formula, default)
-  simple_logit = rbind(simple_logit, logit)
-}
+models %>% 
+  filter(models %in% c('bal','stud','inc')) %>%
+  unnest(tidy, .drop = TRUE) %>% 
+  mutate(p.value=round(p.value,4))
 
-simple_logit
+
 ```
 
 ¿Son significativos?
@@ -149,27 +180,49 @@ simple_logit
 Ahora probamos con un modelo que utiliza las tres predictoras
 
 ```{r}
-glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default) %>% tidy() %>% mutate(p.value=round(p.value,4))
-glm_full  
+models %>% 
+  filter(models == "full") %>%
+  unnest(tidy, .drop = TRUE) %>% 
+  mutate(p.value=round(p.value,4))
+```
+
+
+
+```{r}
+
+# glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default) %>% tidy() %>% mutate(p.value=round(p.value,4))
+# glm_full  
+
 ```
 
 ¿Que cambios hay respecto a los 3 modelos individuales previos?
 
 ##Evaluación de todos los modelos
 
-Creamos una función que utiliza la función _glance_ para traernos información relevante para el diagnóstico del modelo.
+Con `map()` agregamos la función `glance` para traernos información relevante para el diagnóstico del modelo.
 
-Usamos la función *map_dfr* para aplicar nuestra función a todas las fórmulas que creamos previamente y juntar los resultados en un dataframe. Por último, ordenamos las modelos por el deviance.
+Con unnest podemos ver la evaluación de cada modelo. Por último ordenamos las modelos por el deviance.
 
 ```{r}
-evaluate_logit <- function(formula, dataset=default){
-  glm <- glm(formula=formula, family = 'binomial', data = dataset) %>% glance() %>% mutate(formula=paste(as.character(formula), collapse=" "))
-  return(glm)
-}
+models <- models %>% 
+  mutate(glance = map(mod,glance))
 
-logit_eval = map_dfr(logit_formulas, evaluate_logit)
+models %>% 
+  unnest(glance, .drop = TRUE) %>% 
+  arrange(deviance)
+```
 
-logit_eval %>% select(-c(df.null)) %>% arrange(deviance)
+
+
+```{r}
+# evaluate_logit <- function(formula, dataset=default){
+#   glm <- glm(formula=formula, family = 'binomial', data = dataset) %>% glance() %>% mutate(formula=paste(as.character(formula), collapse=" "))
+#   return(glm)
+# }
+# 
+# logit_eval = map_dfr(logit_formulas, evaluate_logit)
+# 
+# logit_eval %>% select(-c(df.null)) %>% arrange(deviance)
 
 ```
 
@@ -182,29 +235,66 @@ Realizamos los gráficos para el modelo completo y uno de los modelos con mayor 
 
 En este caso estamos:
 
-1) Creando el modelo
-2) Aplicando la función __predict.glm__ con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
-3) Creamos la curva ROC con la librería **pROC**
+1) agregando las predicciones con `augment` con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
+2) Armando las curvas ROC con `pROC`
 
 ```{r}
-#Modelo full
-glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default)
-default['predicted_full']= predict.glm(glm_full, default, type='response') 
-roc_full <- roc(response=default$default, predictor=default$predicted_full)
-#Modelo student+income
-glm_bad <- glm(formula=logit_formulas$stud_inc, family = 'binomial', data = default)
-default['predicted_bad']= predict.glm(glm_bad, default, type='response') 
-roc_bad <- roc(response=default$default, predictor=default$predicted_bad)
+# 1) Creando el modelo
+# 2) Aplicando la función __predict.glm__ con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
+# 3) Creamos la curva ROC con la librería **pROC**
+```
+
+
+```{r}
+models <- models %>% 
+  mutate(pred= map(mod,augment, type.predict = "response"))
+
+models$pred[1]
+```
+
+
+```{r}
+prediction_full <- models %>% 
+  filter(models=="full") %>% 
+  unnest(pred, .drop=TRUE)
+roc_full <- roc(response=prediction_full$default, predictor=prediction_full$.fitted)
+
+prediction_bad <- models %>% 
+  filter(models=="stud_inc") %>% 
+  unnest(pred, .drop=TRUE)
+
+roc_bad <- roc(response=prediction_bad$default, predictor=prediction_bad$.fitted)
+
+
+```
+
+
+```{r}
+
+# #Modelo full
+# glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default)
+# default['predicted_full']= predict.glm(glm_full, default, type='response') 
+# roc_full <- roc(response=default$default, predictor=default$predicted_full)
+# #Modelo student+income
+# glm_bad <- glm(formula=logit_formulas$stud_inc, family = 'binomial', data = default)
+# default['predicted_bad']= predict.glm(glm_bad, default, type='response') 
+# roc_bad <- roc(response=default$default, predictor=default$predicted_bad)
+
+
 ```
 
 #### Violin plots
 
 ```{r}
-violin_full=ggplot(default, aes(x=default, y=predicted_full)) + geom_violin(aes(fill=default)) +theme_bw() +
+violin_full=ggplot(prediction_full, aes(x=default, y=.fitted)) + 
+  geom_violin(aes(fill=default), fill = "darkgreen", alpha=0.75) +
+  theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo completo', y='Predicted probability')
 
-violin_bad=ggplot(default, aes(x=default, y=predicted_bad)) + geom_violin(aes(fill=default)) + theme_bw() +
+violin_bad=ggplot(prediction_bad, aes(x=default, y=.fitted)) + 
+  geom_violin(aes(fill=default), fill="darkred", alpha=0.75) + 
+  theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo malo', y='Predicted probability')
 
@@ -257,8 +347,15 @@ Hosmer_Lemeshow_plot <- function(dataset, predicted_column, class_column, bins, 
   return(HM_plot)
 }
 
-Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes') + labs(subtitle="Modelo completo")
-Hosmer_Lemeshow_plot(default, 'predicted_bad', 'default', 10, 'Yes', color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
+Hosmer_Lemeshow_plot(prediction_full, '.fitted', 'default', 10, 1) + labs(subtitle="Modelo completo")
+
+Hosmer_Lemeshow_plot(prediction_bad, '.fitted', 'default', 10, 1, color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
+
+
+# Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes') + labs(subtitle="Modelo completo")
+# 
+# Hosmer_Lemeshow_plot(default, 'predicted_bad', 'default', 10, 'Yes', color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
+
 ```
 
 ¿Qué vemos en estos gráficos?
@@ -267,23 +364,44 @@ Hosmer_Lemeshow_plot(default, 'predicted_bad', 'default', 10, 'Yes', color = "fi
 
 ## Punto de corte
 
-Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final del modelo debe consistir en asignar al individuo una clase predicha. En n uestro caso debemos establecer un punto de corte según el cual vamos a separar a los indivuos en quienes defaultean y quienes no.
+Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final del modelo debe consistir en asignar al individuo una clase predicha. En nuestro caso debemos establecer un punto de corte según el cual vamos a separar a los indivuos en quienes defaultean y quienes no.
 
 Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad y la especificidad para cada uno de ellos.
 
 ```{r}
-prediction_metrics <- function(cutoff, predicted_column, dataset=default){
-  table <- dataset %>% mutate(predicted_class=if_else(!!sym(predicted_column)>cutoff, 'Yes', 'No') %>% as.factor())
-  cm <- confusionMatrix(table(table$default, table$predicted_class), positive = 'Yes') %>%
+# prediction_metrics <- function(cutoff, predicted_column, dataset=default){
+#   
+#   table <- dataset %>% mutate(predicted_class=if_else(!!sym(predicted_column)>cutoff, 'Yes', 'No') %>% as.factor())
+#   
+#   
+#   cm <- confusionMatrix(table(table$default, table$predicted_class), positive = 'Yes') %>%
+#     tidy() %>%
+#     select(term, estimate) %>% 
+#     filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>% 
+#     mutate(cutoff=cutoff)
+#   return(cm)
+# }
+
+
+prediction_metrics <- function(cutoff, predictions=prediction_full){
+  table <- predictions %>% 
+    mutate(predicted_class=if_else(.fitted>cutoff, 1, 0) %>% as.factor(),
+           default= factor(default))
+  
+  confusionMatrix(table(table$default, table$predicted_class), positive = "1") %>%
     tidy() %>%
-    select(term, estimate) %>% 
-    filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>% 
+    select(term, estimate) %>%
+    filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>%
     mutate(cutoff=cutoff)
-  return(cm)
+  
 }
 
+
+
 cutoffs = seq(0.01,0.97,0.01)
-logit_pred =map2_dfr(cutoffs, 'predicted_full', prediction_metrics) %>% mutate(term=as.factor(term))
+logit_pred= map_dfr(cutoffs, prediction_metrics)%>% mutate(term=as.factor(term))
+
+# logit_pred =map2_dfr(cutoffs, 'predicted_full', prediction_metrics) %>% mutate(term=as.factor(term))
 
 ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line() + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
 ```
