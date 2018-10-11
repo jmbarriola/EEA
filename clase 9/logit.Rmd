@@ -282,10 +282,10 @@ prediction_metrics <- function(cutoff, predicted_column, dataset=default){
   return(cm)
 }
 
-cutoffs = seq(0.05,0.95,0.05)
+cutoffs = seq(0.01,0.97,0.01)
 logit_pred =map2_dfr(cutoffs, 'predicted_full', prediction_metrics) %>% mutate(term=as.factor(term))
 
-ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line() + geom_point() + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
+ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line() + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
 ```
 
 ¿Qué podemos observar en el gráfico?
