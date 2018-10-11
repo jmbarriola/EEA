@@ -40,3 +40,8 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 ### Clase 8:
 
 - Muchos modelos (segunda parte)
+
+### Clase 9
+
+- Regresion Logistica
+- Ejercicio Regresion Logistica
