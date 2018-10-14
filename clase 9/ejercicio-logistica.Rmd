@@ -17,7 +17,7 @@ Cuadro variables
 2) Analicen su estructura
 3) Revisen si existen valores faltantes y cual podria ser una estrategia para trabajar con ellos
 4) Analicen cual es la cardinalidad (cantidad de valores distintos) de las variables nominales
-5) Analcen la distribución de la clase en ambos datasets
+5) Analcen la distribución de la clase.
 
 ```{r}
 train <- read.csv('train.csv')
@@ -43,9 +43,9 @@ d) edad+tarifa+genero = modelo con la edad, la tarifa y el genero
 
 2) Obtengan los valores de las estimaciones de los parametros para cada modelo
 
-  2.1) Obtengan la probabilidad de supervivencia segun los cuatro modelos de una persona que tiene 35 años, es mujer, pago una tarifa de $40 y viaja en segunda clase
+  - Obtengan la probabilidad de supervivencia segun los cuatro modelos de una persona que tiene 35 años, es mujer, pago una tarifa de $40 y viaja en segunda clase
 
-  2.2) Obtengan las odds segun los cuatro modelos para la misma persona
+  - Obtengan las odds segun los cuatro modelos para la misma persona
 
 3) Ordenen los modelos por la deviance explicada
 
@@ -53,14 +53,14 @@ d) edad+tarifa+genero = modelo con la edad, la tarifa y el genero
 
 1) En base a lo que obtuvieron de los análisis iniciales:
 
-1.1) Elijan alguna estrategia para lidiar con los valores faltantes (eliminar registros, imputar media, imputar media por clase, etc)
-1.2) Modifiquen variables existentes o creen algunas varaibles nuevas si lo consideran relevante. Por ejemplo: se podría discretizar la edad o como hicieron algunas personas de Kaggle extraer información de los nombres.
+- Elijan alguna estrategia para lidiar con los valores faltantes (eliminar registros, imputar media, imputar media por clase, etc)
+- Modifiquen variables existentes o creen algunas varaibles nuevas si lo consideran relevante. Por ejemplo: se podría discretizar la edad o como hicieron algunas personas de Kaggle extraer información de los nombres.
 
 Recuerden que todas estas modificaciones deben realizarse en ambos datasets
 
 2) **Opcional** Evaluar la importancia de las variables. Por ejemplo con Information Value
 
-3) Realicen al menos 3 modelos de regresión logística con distintas variables. Recuerden usar las funciones **formula** y **map**
+3) Realicen al menos 3 modelos de regresión logística con distintas variables. Recuerden usar las funciones `formula` y `map`
 
 ## Diagnóstico
 
@@ -71,10 +71,9 @@ El criterio que vamos a utilizar para evaluar los modelos es la deviance explica
 2) Examinen los coeficientes estimados de sus 2 mejores modelos y del peor modelo
 
 3) Realicen los siguientes gráficos para los 3 modelos del punto anterior:
-
-3.1) Violin-plot
-3.2) Curva ROC
-3.3) Hosmer-Lemeshow
+  - Violin-plot
+  - Curva ROC
+  - Hosmer-Lemeshow
 
 ## Elección del modelo y punto de corte
 
