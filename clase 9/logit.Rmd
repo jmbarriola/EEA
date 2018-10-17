@@ -1,10 +1,14 @@
 ---
 title: "Regresion Logistica"
 output: html_notebook
+author: "Juan Manuel Barriola y Diego Kozlowski"
+date: 16-10-2018
 ---
 
 ```{r, echo=TRUE, message=FALSE}
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 library(broom)
 library(ISLR)
 library(GGally)
@@ -52,7 +56,9 @@ ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_te
 ```
 
 ¿Qué pueden decir de la relación entre balance y default?
+
 ¿Y entre income y balance?
+
 ¿Cuáles parecen ser buenas variables para predecir la probabilidad de default de una persona?
 
 
@@ -136,63 +142,45 @@ logit_formulas <- formulas(.response = ~default, # único lado derecho de las fo
                          )
 ```
 
+## Creación de modelos
+
+Procedemos a crear los modelos a partir de estas fórmulas
+
+```{r, warning=FALSE}
+models <- data_frame(logit_formulas) %>% # dataframe a partir del objeto formulas
+  mutate(models = names(logit_formulas), # columna con los nombres de las formulas
+         expression = paste(logit_formulas), # columna con las expresiones de las formulas
+         mod = map(logit_formulas, ~  glm(.,family = 'binomial', data = default))) # Que estamos haciendo acá? Que vamos a estar en la columna?
+```
+
 ## Modelos simples
 
 Probamos los primeros tres modelos, aquellos que tienen un único predictor. Usamos la función _tidy_ para obtener los parámetros estimados para estos tres modelos.
 
-```{r}
-# get_Logit_coef <- function(formula, dataset) {
-#   glm(formula=formula, family = 'binomial', data = dataset) %>% tidy()
-# }
-# 
-# simple_logit = NULL
-# 
-# for (i in c(1:3)) {
-#   formula= logit_formulas[[i]]
-#   logit =get_Logit_coef(formula, default)
-#   simple_logit = rbind(simple_logit, logit)
-# }
-# 
-# simple_logit
-```
-
-```{r}
-models <- data_frame(logit_formulas) %>%
-  mutate( models = names(logit_formulas),
-         expresion = paste(logit_formulas)) %>% 
-  group_by(models,expresion) %>% 
-    mutate(mod = map(logit_formulas, ~  glm(as.formula(.),family = 'binomial', data = default)),
-           tidy = map(mod,tidy))
-
+```{r, warning=FALSE}
 models %>% 
   filter(models %in% c('bal','stud','inc')) %>%
+  mutate(tidy = map(mod,tidy)) %>%  # Qué realizamos en este paso? Que va a tener esta columna?
   unnest(tidy, .drop = TRUE) %>% 
-  mutate(p.value=round(p.value,4))
-
-
+  mutate(estimate=round(estimate,5),
+         p.value=round(p.value,4))
 ```
 
 ¿Son significativos?
+
 ¿Qué interpretación pueden darle a estos valores?
 
-##Modelo completo
+## Modelo completo
 
 Ahora probamos con un modelo que utiliza las tres predictoras
 
-```{r}
+```{r,  warning=FALSE}
 models %>% 
   filter(models == "full") %>%
+  mutate(tidy = map(mod,tidy)) %>%
   unnest(tidy, .drop = TRUE) %>% 
-  mutate(p.value=round(p.value,4))
-```
-
-
-
-```{r}
-
-# glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default) %>% tidy() %>% mutate(p.value=round(p.value,4))
-# glm_full  
-
+  mutate(estimate=round(estimate,5),
+         p.value=round(p.value,4))
 ```
 
 ¿Que cambios hay respecto a los 3 modelos individuales previos?
@@ -203,28 +191,17 @@ Con `map()` agregamos la función `glance` para traernos información relevante 
 
 Con unnest podemos ver la evaluación de cada modelo. Por último ordenamos las modelos por el deviance.
 
-```{r}
+```{r, warning=FALSE}
 models <- models %>% 
   mutate(glance = map(mod,glance))
 
 models %>% 
-  unnest(glance, .drop = TRUE) %>% 
+  unnest(glance, .drop = TRUE) %>%
+  mutate(perc_explained_dev = 1-deviance/null.deviance) %>% 
+  select(-c(null.deviance, df.null, AIC, BIC)) %>% 
   arrange(deviance)
 ```
 
-
-
-```{r}
-# evaluate_logit <- function(formula, dataset=default){
-#   glm <- glm(formula=formula, family = 'binomial', data = dataset) %>% glance() %>% mutate(formula=paste(as.character(formula), collapse=" "))
-#   return(glm)
-# }
-# 
-# logit_eval = map_dfr(logit_formulas, evaluate_logit)
-# 
-# logit_eval %>% select(-c(df.null)) %>% arrange(deviance)
-
-```
 
 El modelo que utiliza las 3 variables es el que minimiza el deviance. 
 Los 3 últimos modelos reducen muy poco el deviance respecto a la deviance nula.
@@ -235,17 +212,11 @@ Realizamos los gráficos para el modelo completo y uno de los modelos con mayor 
 
 En este caso estamos:
 
-1) agregando las predicciones con `augment` con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
+1) Agregando las predicciones con `augment` con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
 2) Armando las curvas ROC con `pROC`
 
-```{r}
-# 1) Creando el modelo
-# 2) Aplicando la función __predict.glm__ con el parámetro type="response" ¿Por qué hacemos esto? ¿Cuál es el valor por default de este parámetro? 
-# 3) Creamos la curva ROC con la librería **pROC**
-```
 
-
-```{r}
+```{r, warning=FALSE}
 models <- models %>% 
   mutate(pred= map(mod,augment, type.predict = "response"))
 
@@ -264,36 +235,19 @@ prediction_bad <- models %>%
   unnest(pred, .drop=TRUE)
 
 roc_bad <- roc(response=prediction_bad$default, predictor=prediction_bad$.fitted)
-
-
-```
-
-
-```{r}
-
-# #Modelo full
-# glm_full <- glm(formula=logit_formulas$full, family = 'binomial', data = default)
-# default['predicted_full']= predict.glm(glm_full, default, type='response') 
-# roc_full <- roc(response=default$default, predictor=default$predicted_full)
-# #Modelo student+income
-# glm_bad <- glm(formula=logit_formulas$stud_inc, family = 'binomial', data = default)
-# default['predicted_bad']= predict.glm(glm_bad, default, type='response') 
-# roc_bad <- roc(response=default$default, predictor=default$predicted_bad)
-
-
 ```
 
 #### Violin plots
 
 ```{r}
 violin_full=ggplot(prediction_full, aes(x=default, y=.fitted)) + 
-  geom_violin(aes(fill=default), fill = "darkgreen", alpha=0.75) +
+  geom_violin(aes(fill=default), fill = "forestgreen") +
   theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo completo', y='Predicted probability')
 
 violin_bad=ggplot(prediction_bad, aes(x=default, y=.fitted)) + 
-  geom_violin(aes(fill=default), fill="darkred", alpha=0.75) + 
+  geom_violin(aes(fill=default), fill="firebrick") + 
   theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo malo', y='Predicted probability')
@@ -310,6 +264,8 @@ plot_grid(violin_bad, violin_full)
 ```{r}
 ggroc(list(full=roc_full, bad=roc_bad), size=1) + geom_abline(slope = 1, intercept = 1, linetype='dashed') + theme_bw() + labs(title='Curvas ROC', color='Modelo')
 ```
+
+¿Qué significa cada uno de los ejes?
 
 #### Gráfico de Hosmer-Lemeshow
 
@@ -351,11 +307,6 @@ Hosmer_Lemeshow_plot(prediction_full, '.fitted', 'default', 10, 1) + labs(subtit
 
 Hosmer_Lemeshow_plot(prediction_bad, '.fitted', 'default', 10, 1, color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
 
-
-# Hosmer_Lemeshow_plot(default, 'predicted_full', 'default', 10, 'Yes') + labs(subtitle="Modelo completo")
-# 
-# Hosmer_Lemeshow_plot(default, 'predicted_bad', 'default', 10, 'Yes', color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
-
 ```
 
 ¿Qué vemos en estos gráficos?
@@ -369,19 +320,6 @@ Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final 
 Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad y la especificidad para cada uno de ellos.
 
 ```{r}
-# prediction_metrics <- function(cutoff, predicted_column, dataset=default){
-#   
-#   table <- dataset %>% mutate(predicted_class=if_else(!!sym(predicted_column)>cutoff, 'Yes', 'No') %>% as.factor())
-#   
-#   
-#   cm <- confusionMatrix(table(table$default, table$predicted_class), positive = 'Yes') %>%
-#     tidy() %>%
-#     select(term, estimate) %>% 
-#     filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>% 
-#     mutate(cutoff=cutoff)
-#   return(cm)
-# }
-
 
 prediction_metrics <- function(cutoff, predictions=prediction_full){
   table <- predictions %>% 
@@ -397,15 +335,14 @@ prediction_metrics <- function(cutoff, predictions=prediction_full){
 }
 
 
-
 cutoffs = seq(0.01,0.97,0.01)
 logit_pred= map_dfr(cutoffs, prediction_metrics)%>% mutate(term=as.factor(term))
 
-# logit_pred =map2_dfr(cutoffs, 'predicted_full', prediction_metrics) %>% mutate(term=as.factor(term))
-
-ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line() + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
+ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line(size=1) + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
 ```
 
 ¿Qué podemos observar en el gráfico?
 
 ¿Podemos definir un buen punto de corte? ¿Cuál sería?
+
+¿Cómo se relaciona este gráfico con el de la curva ROC?

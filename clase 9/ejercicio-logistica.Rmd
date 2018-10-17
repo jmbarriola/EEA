@@ -1,6 +1,8 @@
 ---
 title: "Ejercicio Logistica: Titanic"
 output: html_notebook
+author: "Juan Manuel Barriola y Diego Kozlowski"
+date: 16-10-2018 
 ---
 
 Para este ejercicio van a utilizar el dataset de Titanic de Kaggle. El mismo consiste en 2 datasets: uno de entrenamiento y otro de testeo.
@@ -22,7 +24,6 @@ Cuadro variables
 ```{r}
 train <- read.csv('train.csv')
 test <- read.csv('test.csv')
-
 
 ```
 
