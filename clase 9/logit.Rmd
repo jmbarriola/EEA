@@ -2,7 +2,7 @@
 title: "Regresion Logistica"
 output: html_notebook
 author: "Juan Manuel Barriola y Diego Kozlowski"
-date: 16-10-2018
+date: 27-10-2018
 ---
 
 ```{r, echo=TRUE, message=FALSE}
@@ -122,7 +122,7 @@ Esta funcion acota el resultado entre 0 y 1, lo cual es mucho mas adecuado para 
 
 Luego de hacer algunas operaciones, podemos llegar a la expresion:
 
-$\log {\frac{P(X)}{1-P(x)}}= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
+$\log {\frac{P(x)}{1-P(x)}}= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
 
 El lado izquierdo es el logaritmo de los **odds** y se llama **logit**
 
@@ -150,7 +150,7 @@ Procedemos a crear los modelos a partir de estas fórmulas
 models <- data_frame(logit_formulas) %>% # dataframe a partir del objeto formulas
   mutate(models = names(logit_formulas), # columna con los nombres de las formulas
          expression = paste(logit_formulas), # columna con las expresiones de las formulas
-         mod = map(logit_formulas, ~  glm(.,family = 'binomial', data = default))) # Que estamos haciendo acá? Que vamos a estar en la columna?
+         mod = map(logit_formulas, ~glm(.,family = 'binomial', data = default))) # Que estamos haciendo acá? Que vamos a encontrar en la columna?
 ```
 
 ## Modelos simples
@@ -185,11 +185,11 @@ models %>%
 
 ¿Que cambios hay respecto a los 3 modelos individuales previos?
 
-##Evaluación de todos los modelos
+## Evaluación de todos los modelos
 
 Con `map()` agregamos la función `glance` para traernos información relevante para el diagnóstico del modelo.
 
-Con unnest podemos ver la evaluación de cada modelo. Por último ordenamos las modelos por el deviance.
+Con `unnest()` podemos ver la evaluación de cada modelo. Por último ordenamos las modelos por el deviance.
 
 ```{r, warning=FALSE}
 models <- models %>% 
@@ -240,14 +240,14 @@ roc_bad <- roc(response=prediction_bad$default, predictor=prediction_bad$.fitted
 #### Violin plots
 
 ```{r}
-violin_full=ggplot(prediction_full, aes(x=default, y=.fitted)) + 
-  geom_violin(aes(fill=default), fill = "forestgreen") +
+violin_full=ggplot(prediction_full, aes(x=default, y=.fitted, group=default,fill=factor(default))) + 
+  geom_violin() +
   theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo completo', y='Predicted probability')
 
-violin_bad=ggplot(prediction_bad, aes(x=default, y=.fitted)) + 
-  geom_violin(aes(fill=default), fill="firebrick") + 
+violin_bad=ggplot(prediction_bad, aes(x=default, y=.fitted, group=default, fill=factor(default))) + 
+  geom_violin() + 
   theme_bw() +
   guides(fill=FALSE) +
   labs(title='Violin plot', subtitle='Modelo malo', y='Predicted probability')
