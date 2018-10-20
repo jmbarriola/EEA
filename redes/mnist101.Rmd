@@ -1,0 +1,166 @@
+---
+title: "Clase x. Redes Neuronales I"
+author: "Diego Kozlowski y Juan Barriola"
+date: "  "
+output: 
+  html_notebook: 
+    toc: true
+    toc_float: true
+    depth: 2
+---
+
+# Fully connected layers
+
+Vamos a utilizar la librería [__KERAS__](https://keras.rstudio.com/)
+
+Getting Started
+
+## instalación
+Installation
+
+First, install the keras R package from GitHub as follows:
+
+The Keras R interface uses the TensorFlow backend engine by default. To install both the core Keras library as well as the TensorFlow backend use the install_keras() function:
+
+
+```{r}
+
+# devtools::install_github("rstudio/keras")
+library(keras)
+# install_keras()
+
+```
+This will provide you with default CPU-based installations of Keras and TensorFlow. If you want a more customized installation, e.g. if you want to take advantage of NVIDIA GPUs, see the documentation for install_keras().
+
+
+```{r}
+mnist <- dataset_mnist()
+x_train <- mnist$train$x
+y_train <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+```
+
+
+```{r}
+x_train[1,,]
+```
+
+
+```{r}
+matrix.rotate <- function(img) { 
+    t(apply(img, 2, rev))
+}
+
+par(mfrow=c(3, 3))
+for (idx in 1:9) {
+    label <- y_train[idx]
+    image(matrix.rotate(x_train[idx,,]), col = grey(level = seq(1, 0, by=-1/255)), axes=F, main=label)
+  
+}
+```
+
+The x data is a 3-d array (images,width,height) of grayscale values . To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (28x28 images are flattened into length 784 vectors). Then, we convert the grayscale values from integers ranging between 0 to 255 into floating point values ranging between 0 and 1:
+
+```{r}
+# reshape
+x_train <- array_reshape(x_train, c(nrow(x_train), 784))
+x_test <- array_reshape(x_test, c(nrow(x_test), 784))
+# rescale
+x_train <- x_train / 255
+x_test <- x_test / 255
+```
+
+
+Note that we use the array_reshape() function rather than the dim<-() function to reshape the array. This is so that the data is re-interpreted using row-major semantics (as opposed to R’s default column-major semantics), which is in turn compatible with the way that the numerical libraries called by Keras interpret array dimensions.
+
+The y data is an integer vector with values ranging from 0 to 9. To prepare this data for training we one-hot encode the vectors into binary class matrices using the Keras to_categorical() function:
+
+
+
+```{r}
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+
+## Defining the Model
+
+
+The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers.
+
+We begin by creating a sequential model and then adding layers using the pipe (%>%) operator:
+
+
+```{r}
+model <- keras_model_sequential() 
+model %>% 
+  layer_dense(units = 256, activation = 'relu', input_shape = c(784)) %>% 
+  layer_dropout(rate = 0.4) %>% 
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 10, activation = 'softmax')
+```
+
+
+
+The input_shape argument to the first layer specifies the shape of the input data (a length 784 numeric vector representing a grayscale image). The final layer outputs a length 10 numeric vector (probabilities for each digit) using a softmax activation function.
+
+Use the summary() function to print the details of the model:
+
+
+
+```{r}
+summary(model)
+```
+
+Next, compile the model with appropriate loss function, optimizer, and metrics:
+
+```{r}
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+## Training and Evaluation
+
+Use the fit() function to train the model for 30 epochs using batches of 128 images:
+```{r}
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 30, batch_size = 128, 
+  validation_split = 0.2
+)
+```
+
+The history object returned by fit() includes loss and accuracy metrics which we can plot:
+
+
+
+
+```{r}
+plot(history)
+```
+
+
+Evaluate the model’s performance on the test data:
+
+
+```{r}
+model %>% evaluate(x_test, y_test)
+```
+
+Generate predictions on new data:
+
+
+
+```{r}
+model %>% predict_classes(x_test)
+```
+
+Keras provides a vocabulary for building deep learning models that is simple, elegant, and intuitive. Building a question answering system, an image classification model, a neural Turing machine, or any other model is just as straightforward.
+
+
+
