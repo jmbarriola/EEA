@@ -59,7 +59,7 @@ gapminder %>%
 Se puede ver que en general hay una tendencia a que suba la esperanza de vida en el tiempo, pero también algunos países parecen tener un comportamiento diferente. 
 
 
-Si quisieramos calcular el modelo lineal para alguno de estos países
+Si quisiéramos calcular el modelo lineal para alguno de estos países
 
 
 ```{r, out.width = "33%", fig.asp = 1, fig.width = 3, fig.align='default'}
@@ -157,7 +157,7 @@ by_country %>%
   arrange(continent, country)
 ```
 
-Si la lista de DF y la lista de modelos eran objetos separados, cada vez que se reordena o filtra un elemento, necesitas volver a ordenar o filtrar todos los demás para mantenerlos sincronizados. Sino el código continuará funcionando, ¡pero __dará una respuesta incorrecta__!s
+Si la lista de DF y la lista de modelos eran objetos separados, cada vez que se reordena o filtra un elemento, necesitas volver a ordenar o filtrar todos los demás para mantenerlos sincronizados. Sino el código continuará funcionando, ¡pero __dará una respuesta incorrecta__!
 
 
 ## Unnesting
@@ -210,9 +210,9 @@ Parece que hay cierto patrón en los residuos que estamos perdiendonos con el mo
 
 ## Diagnóstico del modelo
 
-vamos a utilizar la librería `broom` para calcular métricas de calidad del modelo. Este paquete forma parte del tidyverse, y nos va a permitir estandarizar el output de muchos modelos, lo que va a faciltar la comparación
+vamos a utilizar la librería `broom` para calcular métricas de calidad del modelo. Este paquete forma parte del tidyverse, y nos va a permitir estandarizar el output de muchos modelos, lo que va a facilitar la comparación
 
-Empezamos por usar  `glance()` Para calcular algunas métricas típicas. Si lo aplicamos sobre un modelo, obtenemos un DF deuna fila y una columna para cada métrica
+Empezamos por usar  `glance()` Para calcular algunas métricas típicas. Si lo aplicamos sobre un modelo, obtenemos un DF de una fila y una columna para cada métrica
 
 ```{r}
 glance(nz_mod)
@@ -243,9 +243,9 @@ glnc %>%
   arrange(r.squared)
 ```
 
-Podemos confirmar la intuición de que el modelo lineal no esta funcionando bien para Africa. 
+Podemos confirmar la intuición de que el modelo lineal no esta funcionando bien para África. 
 
-Graficamente:
+Gráficamente:
 
 ```{r}
 glnc %>% 
@@ -274,10 +274,7 @@ gapminder %>%
     geom_line()
 ```
 
-Aquí vemos dos efectos principales: las tragedias de la epidemia de VIH / SIDA y el genocidio de Ruanda.
-
-The broom package provides three general tools for turning models into tidy data frames:
-
+Aquí vemos dos efectos principales: las tragedias de la epidemia de VIH / SIDA y el genocidio de Rwanda.
 
 
 ## Tidy
@@ -292,9 +289,9 @@ nz_mod <- lm(lifeExp ~ year, data = nz)
 summary(nz_mod)
 ```
 
-Tenemos para `intercept` y `year` un valor estimado, error estandar y el p-value para ver su significatividad. 
+Tenemos para `intercept` y `year` un valor estimado, error estándar y el p-value para ver su significatividad. 
 
-A la mandera tidy
+A la manera tidy
 
 ```{r}
 tidy(nz_mod)
@@ -302,7 +299,7 @@ tidy(nz_mod)
 
 De esta forma recuperamos las métricas que refieren a los coeficientes en un formato consistente. Esto es sumamente útil si queremos trabajar con varios modelos a la vez, o automatizar un pipline de trabajo con una salida de un modelo.
 
-Por ejemplo, obtengamos estos valores para todas las rergesiones. Para ello, necesitamos mapear los modelos con la función tidy
+Por ejemplo, obtengamos estos valores para todas las regresiones. Para ello, necesitamos mapear los modelos con la función tidy
 
 
 ```{r}
@@ -323,18 +320,18 @@ tidy(nz_mod) %>% mutate(low = estimate - std.error,
                           high = estimate + std.error) %>% 
 ggplot(., aes(estimate, term, xmin = low, xmax = high, height = 0)) +
      geom_point() +
-     geom_vline(xintercept = 0) +
+    geom_vline(xintercept = 0, linetype="dashed", color = "darkgreen") +
      geom_errorbarh()
 ```
 
-En este gráfico tenemos graficado cada uno de los parámetros del modelo, con +-1 desvío estandar. si quisieramos comparar todos los modelos.
+En este gráfico tenemos graficado cada uno de los parámetros del modelo, con +-1 desvío estándar. si quisiéramos comparar todos los modelos.
 
 ```{r}
 tdy %>% mutate(low = estimate - std.error,
                           high = estimate + std.error) %>% 
 ggplot(., aes(estimate, term, xmin = low, xmax = high, height = 0, color = country)) +
      geom_point() +
-     geom_vline(xintercept = 0) +
+    geom_vline(xintercept = 0, linetype="dashed", color = "darkgreen") +
      geom_errorbarh()+
   theme(legend.position = "none")
 ```
@@ -353,8 +350,8 @@ Estos gráficos son:
 
 - Residuos versus el modelo ajustado:  El objetivo es que no veamos una estructura clara. Si así la hubiera, esto implicaría que hay una parte __sistemática__ del fenómeno que se esta perdiendo. 
 - Normal QQ plot: sirve para ver si los datos siguen una distribución teórica, en este caso, la $\sim N(0,1)$. Los residuos estandarizados, si el modelo esta bien definido, deberían seguir esta distribución
-- Scale-location plot: Similar al primer gráfico, pero utilizando la raiz cuadrada de los residuos estandarizados. De la misma forma que el anterior, buscamos que no haya una estructura en los residuos.
-- scale vs leverage: El leverage mide cuan influyentes son los puntos en el modelo. Si en este gráfico algunas observacione aparecen muy separadas, con mucho leverage y residuo, significa que cambian mucho al modelo.
+- Scale-location plot: Similar al primer gráfico, pero utilizando la raíz cuadrada de los residuos estandarizados. De la misma forma que el anterior, buscamos que no haya una estructura en los residuos.
+- scale vs leverage: El leverage mide cuan influyentes son los puntos en el modelo. Si en este gráfico algunas observaciones aparecen muy separadas, con mucho leverage y residuo, significa que cambian mucho al modelo.
 
 
 La función `augment(model, data)` nos permite recuperar la información necesaria para estos gráficos de forma sistemática.
@@ -392,11 +389,17 @@ De la misma forma que con las otras funciones, podemos utilizar `map2(model, dat
 
 
 ```{r}
-augment <- by_country %>%
-  mutate(augment = map2( model,data,augment)) %>% 
-  unnest(augment, .drop = TRUE)
-augment
-
+by_country %>%
+  mutate(agmnt = map2( model,data,augment))
 ```
+
+
+```{r}
+by_country %>%
+  mutate(agmnt = map2( model,data,augment)) %>% 
+  unnest(agmnt, .drop = TRUE)
+```
+
+
 
   
