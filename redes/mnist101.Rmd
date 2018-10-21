@@ -1,5 +1,5 @@
 ---
-title: "Clase x. Redes Neuronales I"
+title: "Clase x. Redes Neuronales I^[Estas notas estan basadas en https://tensorflow.rstudio.com/keras/#tutorials]"
 author: "Diego Kozlowski y Juan Barriola"
 date: "  "
 output: 
@@ -11,27 +11,34 @@ output:
 
 # Fully connected layers
 
-Vamos a utilizar la librería [__KERAS__](https://keras.rstudio.com/)
 
-Getting Started
+![red densa](nn.png)
+
+Vamos a utilizar la librería 
+
+#### [__KERAS__](https://keras.rstudio.com/)
+
 
 ## instalación
-Installation
 
-First, install the keras R package from GitHub as follows:
+Keras utiliza como backend __TensorFlow__. Para poner todo en funcionamiento necesitamos instalar ambas cosas. Para eso usamos la función `install_keras()` que realiza una instalación por default de basada en el CPU.
 
-The Keras R interface uses the TensorFlow backend engine by default. To install both the core Keras library as well as the TensorFlow backend use the install_keras() function:
+Si tienen una GPU (procesador gráfico), las redes funcionan mucho más rápido, porque la GPU permite optimizar las operaciones matriciales. Pero necesitan instalar keras para que corra en el lenguaje de la GPU ( _CUDA_ )
 
 
 ```{r}
-
 # devtools::install_github("rstudio/keras")
 library(keras)
 # install_keras()
-
+library(tidyverse)
+library(knitr)
 ```
-This will provide you with default CPU-based installations of Keras and TensorFlow. If you want a more customized installation, e.g. if you want to take advantage of NVIDIA GPUs, see the documentation for install_keras().
 
+
+## Mnist
+
+Este es un problema clásico, de juguete, que sirve desde hace muchos años como benchmark para clasificación de imágenes. 
+Tiene 60.000 imágenes, de 28x28, de números escritos a mano.
 
 ```{r}
 mnist <- dataset_mnist()
@@ -42,10 +49,9 @@ y_test <- mnist$test$y
 ```
 
 
-```{r}
-x_train[1,,]
-```
+Veamos la pinta de los datos
 
+__datos de entrada__
 
 ```{r}
 matrix.rotate <- function(img) { 
@@ -60,7 +66,41 @@ for (idx in 1:9) {
 }
 ```
 
-The x data is a 3-d array (images,width,height) of grayscale values . To prepare the data for training we convert the 3-d arrays into matrices by reshaping width and height into a single dimension (28x28 images are flattened into length 784 vectors). Then, we convert the grayscale values from integers ranging between 0 to 255 into floating point values ranging between 0 and 1:
+
+> Pará pará pará... vos me querés decir que ahora cada observación es una matriz de 28x28?
+
+> SI
+
+
+- En estadística y Machine Learning estamos acostumbrados a pensar cada observación como una fila, con features en las columnas. Si queremos representar una imagen tenemos que _aplanarla_. Esto significa que tendríamos 28x28=784 features. Probablemente a continuación necesitaríamos una técnica de reducción de la dimensionalidad, y por ahí seguimos...
+
+- En las redes neuronales esto cambia. Si bien en el modelo de hoy (Fully conected layers) la capa de entrada sigue teniendo 784 nodos, la estructura de la red permite captar muy bien las relaciones no lineales propias de una imagen. 
+
+- Incluso más, cuando veamos las Convolutional Neural Networks, vamos a utilizar imagenes a color, lo que implica 3 matrices para los 3 canales de color (RGB)
+
+
+__¿qué pinta tiene un gráfico desde el punto de vista matricial?__
+
+
+```{r}
+kable(data.frame(x_train[1,,]))
+```
+
+
+
+Cada valor representa a un pixel, y su valor es su representación en la escala de grises (de 0 a 255). Es decir, cuando mayor es el valor, eso es un pixel más oscuro. 
+
+El dato esta en un array de 3 dimensiones (imagen,ancho,largo). Como tenemos 60K imagenes, esto tiene la forma de :
+
+```{r}
+dim(x_train)
+```
+
+
+Como mencionabamos arriba lo primero es un _reshape_ de los datos:
+
+- Pasar de estos arrays de 3 dimensiones a 1 dimensión (como estamos acostumbrados)
+- Además, necesitamos convertir la escala de los datos de íntegers entre 0 y 255 a numeros floating point entre 0 y 1
 
 ```{r}
 # reshape
@@ -72,10 +112,18 @@ x_test <- x_test / 255
 ```
 
 
-Note that we use the array_reshape() function rather than the dim<-() function to reshape the array. This is so that the data is re-interpreted using row-major semantics (as opposed to R’s default column-major semantics), which is in turn compatible with the way that the numerical libraries called by Keras interpret array dimensions.
+obs: esto lo podríamos hacer con `dim <-`, pero sería menos performante.
 
-The y data is an integer vector with values ranging from 0 to 9. To prepare this data for training we one-hot encode the vectors into binary class matrices using the Keras to_categorical() function:
 
+__datos de salida__
+
+```{r}
+y_train %>% head(.)
+```
+
+Es un vector de integers entre 0-9. 
+
+Dada la implementación de las redes, necesitamos pasarlo a __one-hot encoding__ esto se hace con la función `to_categorical()` de Keras
 
 
 ```{r}
@@ -84,15 +132,28 @@ y_test <- to_categorical(y_test, 10)
 ```
 
 
-## Defining the Model
-
-
-The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers.
-
-We begin by creating a sequential model and then adding layers using the pipe (%>%) operator:
-
+¿qué pinta tiene esto?
 
 ```{r}
+y_train %>% head(.)
+```
+
+
+
+
+## Definción del modelo
+
+
+Para armar el modelo primero definimos el tipo de modelo. Para eso usamos `keras_model_sequential()` que nos permite simplemente apilar capas de la red. 
+
+- En la primera capa tenemos que aclarar el input_shape. En este caso el unidimensional (lo aplanamos recién), pero podría ser un tensor de cualquier dimensión (!!)
+- Las capas se agregan con pipes `%>%`
+- La última capa tiene la misma cantidad de unidades que categorías nuestro output. La salida del modelo es un vector que asigna una probabilidad a cada una da las categorías
+- En cada capa tenemos que definir una función de activación
+- Además agregamos una regularización `layer_droput(x)` que lo que hace es, en cada iteración del ajuste, ignorar el x% de las conexiones. Esto evita el sobreajuste del modelo
+
+```{r}
+
 model <- keras_model_sequential() 
 model %>% 
   layer_dense(units = 256, activation = 'relu', input_shape = c(784)) %>% 
@@ -103,18 +164,61 @@ model %>%
 ```
 
 
+#### Funciones de activación
 
-The input_shape argument to the first layer specifies the shape of the input data (a length 784 numeric vector representing a grayscale image). The final layer outputs a length 10 numeric vector (probabilities for each digit) using a softmax activation function.
+Para este modelo utilizamos dos funciones de activación: 
 
-Use the summary() function to print the details of the model:
+- Rectified Linear Unit: $$f(x)=max(0,x)$$
+- Softmax : $$ f(x)=\frac{e^{x_i}}{\sum_{j=1}^n e^{x_j}}$$
+
+Definidas en código y gráficamente:
+
+```{r}
+
+relu <- function(x) ifelse(x >= 0, x, 0)
+softmax <- function(x) exp(x) / sum(exp(x))
+
+data.frame(x= seq(from=-1, to=1, by=0.1)) %>% 
+  mutate(softmax = softmax(x),
+         relu = relu(x)) %>% 
+  gather(variable,value,2:3) %>% 
+
+ggplot(., aes(x=x, y=value, group=variable, colour=variable))+
+  geom_line(size=1) +
+  ggtitle("ReLU & Softmax")+
+  theme_minimal()
+```
 
 
+__ReLu__ es la función de activación que más se utiliza en la actualidad. 
+
+Si queremos ver un resumen del modelo:
 
 ```{r}
 summary(model)
 ```
 
-Next, compile the model with appropriate loss function, optimizer, and metrics:
+El modelo tiene 235,146 parámetros para optimizar:
+
+En la primera capa oculta tenemos 256 nodos que se conectan con cada nodo de la capa de entrada (784), además de un bias para cada nodo:
+```{r}
+784*256+256
+```
+
+La capa de droput es una regularización y no ajusta ningún parámetro
+
+la capa densa 2 se conecta con los 256 nodos de la primera capa:
+
+```{r}
+128*256+128
+```
+
+La tercera capa
+```{r}
+128*10+10
+```
+
+Luego necesitamos __compilar el modelo__ indicando la función de _loss_, qué tipo de optimizador utilizar, y qué métricas nos importan
 
 ```{r}
 model %>% compile(
@@ -124,10 +228,17 @@ model %>% compile(
 )
 ```
 
-## Training and Evaluation
+## Entrenamiento
 
-Use the fit() function to train the model for 30 epochs using batches of 128 images:
-```{r}
+Para ajustar el modelo usamos la función `fit()`, acá necesitamos pasar los siguientes parámetros:
+
+- El array con los datos de entrenamiento
+- El array con los outputs
+- `epochs`: Cuantas veces va a recorrer el dataset de entrenamiento
+- `batch_size`: de a cuantas imagenes va a mirar en cada iteración del backpropagation
+- `validation_split`: Hacemos un split en train y validation para evaluar las métricas.
+
+```{r echo=T, results='hide'}
 history <- model %>% fit(
   x_train, y_train, 
   epochs = 30, batch_size = 128, 
@@ -135,32 +246,49 @@ history <- model %>% fit(
 )
 ```
 
-The history object returned by fit() includes loss and accuracy metrics which we can plot:
+Mientras entrenamos el modelo, podemos ver la evolución en el gráfico interactivo que se genera en el viewer de Rstudio.
 
 
 
+`fit()` nos devuelve un objeto que incluye las métricas de loss y accuracy
 
 ```{r}
-plot(history)
+history
+```
+
+Este objeto lo podemos graficar con `plot()` y nos devuelve un objeto de _ggplot_, sobre el que podemos seguir trabajando
+
+```{r}
+plot(history)+
+  theme_minimal()+
+  labs(title= "Evolución de Loss y Accuracy en train y validation")
 ```
 
 
-Evaluate the model’s performance on the test data:
-
+Si queremos evaluar el modelo sobre el conjunto de test (distinto del de validación) podemos usar la función `evaluate()`
 
 ```{r}
 model %>% evaluate(x_test, y_test)
 ```
 
-Generate predictions on new data:
-
-
+Para obtener las predicciones sobre un nuevo conjunto de datos utilizamos `predict_classes()`
 
 ```{r}
-model %>% predict_classes(x_test)
+model %>% predict_classes(x_test) %>% head(.)
 ```
 
-Keras provides a vocabulary for building deep learning models that is simple, elegant, and intuitive. Building a question answering system, an image classification model, a neural Turing machine, or any other model is just as straightforward.
+
+## Otros recursos interesantes:
+
+
+#### [Visualización de una Red Fully conected para clasificación de dígitos](http://scs.ryerson.ca/~aharley/vis/fc/)
+
+
+[Tensor Flow Playground](http://playground.tensorflow.org/#activation=tanh&batchSize=10&dataset=circle&regDataset=reg-plane&learningRate=0.03&regularizationRate=0&noise=0&networkShape=4,2&seed=0.59794&showTestData=false&discretize=false&percTrainData=50&x=true&y=true&xTimesY=false&xSquared=false&ySquared=false&cosX=false&sinX=false&cosY=false&sinY=false&collectStats=false&problem=classification&initZero=false&hideText=false
+)
+
+
+[Diagramas de redes](http://alexlenail.me/NN-SVG/index.html)
 
 
 
