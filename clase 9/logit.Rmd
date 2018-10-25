@@ -1,6 +1,9 @@
 ---
 title: "Regresion Logistica"
-output: html_notebook
+output: 
+  html_notebook: 
+    toc: yes
+    toc_float: yes
 author: "Juan Manuel Barriola y Diego Kozlowski"
 date: 27-10-2018
 ---
@@ -402,7 +405,7 @@ Existen dos maneras sencillas con las cuales podemos trabajar con una clase desb
   * Sobre-sampleo (oversampling) de la clase minoritaria
   * Sub-sampleo (undersampling) de la clase mayoritaria
   
-La función `glm` puede tomar como argumento una columna (`weigths`) de ponderadores para poder hacer esto. Podemos asignar pesos mayores a 1 a la clase minoritaria (oversampling) o menores a 1 a la clase mayoritaria (undersampling). En nuestro vamos a realizar un sobresampleo de la clase minoritaria.
+La función `glm` puede tomar como argumento una columna (`weigths`) de ponderadores para poder hacer esto. Podemos asignar pesos mayores a 1 a la clase minoritaria (oversampling) o menores a 1 a la clase mayoritaria (undersampling). En nuestro problema vamos a realizar un sobresampleo de la clase minoritaria.
 
 ```{r, warning=FALSE}
 # Creamos la columna de ponderadores
@@ -487,7 +490,7 @@ print(paste('AUC: Modelo malo', roc_bad$auc))
 
 ```
 
-¿Dónde se ven los cambios más notorios respecto a nuestros modelos anteriores que no tenían en cuenta el desbalance de la clase?
+> ¿Dónde se ven los cambios más notorios respecto a nuestros modelos anteriores que no tenían en cuenta el desbalance de la clase?
 
 ### Punto de corte
 
