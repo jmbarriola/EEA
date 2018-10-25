@@ -19,6 +19,7 @@ library(OneR)
 library(rlang)
 library(purrr)
 library(caret)
+set.seed(1992)
 ```
 
 La regresión logística es útil para problemas de predicción de clases. El problema que vamos a tratar de resolver es predecir si una persona va defaultear su deuda de tarjeta de crédito en base a ciertos predictores.
