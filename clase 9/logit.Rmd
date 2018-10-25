@@ -5,7 +5,7 @@ author: "Juan Manuel Barriola y Diego Kozlowski"
 date: 27-10-2018
 ---
 
-```{r, echo=TRUE, message=FALSE}
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -23,7 +23,7 @@ library(caret)
 
 La regresión logística es útil para problemas de predicción de clases. El problema que vamos a tratar de resolver es predecir si una persona va defaultear su deuda de tarjeta de crédito en base a ciertos predictores.
 
-##Conjunto de datos
+##1-Conjunto de datos
 
 Este conjunto de datos proviene de la librería [ISLR](http://www-bcf.usc.edu/%7Egareth/ISL/)  (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
 
@@ -39,7 +39,7 @@ Tiene 4 variables:
 * **balance**: Balance promedio que le queda a la persona luego de sus pagos mensuales
 * **income**: Ingreso de la persona
 
-##Exploratorias
+##2-Exploratorias
 
 Analicemos la distribución de la clase
 
@@ -62,7 +62,7 @@ ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_te
 ¿Cuáles parecen ser buenas variables para predecir la probabilidad de default de una persona?
 
 
-### Limpieza
+###Limpieza
 
 Para modelizar va a ser más necesario tener la variable default como numérica. 
 Definimos la variable como {0,1} para los valores {"No","Yes"}
@@ -72,7 +72,7 @@ default <- default%>% mutate(default= case_when(default=="No"~0,
                                                 default=="Yes"~1))
 ```
 
-## Problema
+##3-Problema
 
 Queremos estimar $P(Default=Yes|X)=P(X)$ para cada individuo y partir de ello poder definir un punto de corte para predecir quienes son los que van a entrar en default.
 
@@ -103,7 +103,7 @@ Veamos un gráfico de nuestro modelo
 ggplot(default, aes(balance, default)) + 
   geom_point(aes(color=factor(default))) +
   geom_abline(intercept = tdy$estimate[1], slope = tdy$estimate[2], color='forestgreen', size=2) + 
-  labs(title="Modelo lineal simple") +
+  labs(title="Modelo lineal simple", color='Clase') +
   lims(y=c(-1,2))+
   theme_bw()
 ```
@@ -126,9 +126,21 @@ $\log {\frac{P(x)}{1-P(x)}}= \beta_0 + \sum\limits_{j=1}^p \beta_j X$
 
 El lado izquierdo es el logaritmo de los **odds** y se llama **logit**
 
+## Partición Train y Testing
+
+Realizamos una partición entre dataset de entrenamiento (70%) y testeo (30%) usando la función `resample_partition` del paquete **modelr**
+
+```{r}
+train_test <- default %>% resample_partition(c(train=0.7,test=0.3))
+
+default <- train_test$train %>% as_tibble()
+test <- train_test$test %>% as_tibble()
+```
+
+
 ## Creación de fórmulas
 
-Para aplicar la regresion logistica primero usamos la funcion _formulas_ del paquete **modelr** para crear un objeto que contiene todas las formulas que vamos a utilizar.
+Para aplicar la regresion logistica primero usamos la funcion `formulas` del paquete **modelr** para crear un objeto que contiene todas las formulas que vamos a utilizar.
 
 ```{r}
 logit_formulas <- formulas(.response = ~default, # único lado derecho de las formulas.
@@ -153,7 +165,7 @@ models <- data_frame(logit_formulas) %>% # dataframe a partir del objeto formula
          mod = map(logit_formulas, ~glm(.,family = 'binomial', data = default))) # Que estamos haciendo acá? Que vamos a encontrar en la columna?
 ```
 
-## Modelos simples
+### Modelos simples
 
 Probamos los primeros tres modelos, aquellos que tienen un único predictor. Usamos la función _tidy_ para obtener los parámetros estimados para estos tres modelos.
 
@@ -170,7 +182,7 @@ models %>%
 
 ¿Qué interpretación pueden darle a estos valores?
 
-## Modelo completo
+### Modelo completo
 
 Ahora probamos con un modelo que utiliza las tres predictoras
 
@@ -185,7 +197,7 @@ models %>%
 
 ¿Que cambios hay respecto a los 3 modelos individuales previos?
 
-## Evaluación de todos los modelos
+### Evaluación de todos los modelos
 
 Con `map()` agregamos la función `glance` para traernos información relevante para el diagnóstico del modelo.
 
@@ -198,7 +210,7 @@ models <- models %>%
 models %>% 
   unnest(glance, .drop = TRUE) %>%
   mutate(perc_explained_dev = 1-deviance/null.deviance) %>% 
-  select(-c(null.deviance, df.null, AIC, BIC)) %>% 
+  select(-c(models, df.null, AIC, BIC)) %>% 
   arrange(deviance)
 ```
 
@@ -206,7 +218,7 @@ models %>%
 El modelo que utiliza las 3 variables es el que minimiza el deviance. 
 Los 3 últimos modelos reducen muy poco el deviance respecto a la deviance nula.
 
-## Graficos de evaluación
+### Gráficos de evaluación
 
 Realizamos los gráficos para el modelo completo y uno de los modelos con mayor deviance (student+income).
 
@@ -235,6 +247,7 @@ prediction_bad <- models %>%
   unnest(pred, .drop=TRUE)
 
 roc_bad <- roc(response=prediction_bad$default, predictor=prediction_bad$.fitted)
+
 ```
 
 #### Violin plots
@@ -263,6 +276,11 @@ plot_grid(violin_bad, violin_full)
 
 ```{r}
 ggroc(list(full=roc_full, bad=roc_bad), size=1) + geom_abline(slope = 1, intercept = 1, linetype='dashed') + theme_bw() + labs(title='Curvas ROC', color='Modelo')
+
+print(paste('AUC: Modelo completo', roc_full$auc))
+
+print(paste('AUC: Modelo malo', roc_bad$auc))
+
 ```
 
 ¿Qué significa cada uno de los ejes?
@@ -305,7 +323,7 @@ Hosmer_Lemeshow_plot <- function(dataset, predicted_column, class_column, bins, 
 
 Hosmer_Lemeshow_plot(prediction_full, '.fitted', 'default', 10, 1) + labs(subtitle="Modelo completo")
 
-Hosmer_Lemeshow_plot(prediction_bad, '.fitted', 'default', 10, 1, color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.07)) + scale_y_continuous(limits = c(.02,.07)) + labs(subtitle="Modelo malo")
+Hosmer_Lemeshow_plot(prediction_bad, '.fitted', 'default', 10, 1, color = "firebrick", nudge_y = 0.003) + scale_x_continuous(limits = c(0.02,.06)) + scale_y_continuous(limits = c(.02,.06)) + labs(subtitle="Modelo malo")
 
 ```
 
@@ -313,11 +331,20 @@ Hosmer_Lemeshow_plot(prediction_bad, '.fitted', 'default', 10, 1, color = "fireb
 
 ¿Para qué valores parece existir una sobreestimación de la probabilidad? ¿Para cuáles subestimación?
 
-## Punto de corte
+### Punto de corte
 
 Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final del modelo debe consistir en asignar al individuo una clase predicha. En nuestro caso debemos establecer un punto de corte según el cual vamos a separar a los indivuos en quienes defaultean y quienes no.
 
-Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad y la especificidad para cada uno de ellos.
+Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad, la especificidad, el recall y la precision para cada uno de ellos.
+
+Recordemos que:
+
+$sensitivity = recall = \frac{TP}{T} = \frac{TP}{TP+FN}$
+
+$specificity = \frac{TN}{N} = \frac{TN}{TN+FP}$
+
+$precision = \frac{TP}{P} = \frac{TP}{TP+FP}$
+
 
 ```{r}
 
@@ -329,20 +356,167 @@ prediction_metrics <- function(cutoff, predictions=prediction_full){
   confusionMatrix(table(table$default, table$predicted_class), positive = "1") %>%
     tidy() %>%
     select(term, estimate) %>%
-    filter(term %in% c('accuracy', 'sensitivity', 'specificity')) %>%
+    filter(term %in% c('accuracy', 'sensitivity', 'specificity', 'precision','recall')) %>%
     mutate(cutoff=cutoff)
   
 }
 
-
-cutoffs = seq(0.01,0.97,0.01)
+cutoffs = seq(0.01,0.95,0.01)
 logit_pred= map_dfr(cutoffs, prediction_metrics)%>% mutate(term=as.factor(term))
 
-ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line(size=1) + theme_bw() + labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo')
+ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line(size=1) +
+  theme_bw() +
+  labs(title= 'Accuracy, Sensitivity, Specificity, Recall y Precision', subtitle= 'Modelo completo', color="")
 ```
 
 ¿Qué podemos observar en el gráfico?
 
 ¿Podemos definir un buen punto de corte? ¿Cuál sería?
 
-¿Cómo se relaciona este gráfico con el de la curva ROC?
+¿Por qué la especificidad tiene ese comportamiento?
+
+### Dataset de testing
+
+Seleccionamos el modelo completo, ya que es el que maximizaba el porcentaje de deviance explicada y en base a lo que vimos definimos un punto de corte en 0.25 (pueden probar otros)
+
+```{r}
+sel_cutoff = 0.25
+# Creamos el modelo
+full_model <- glm(logit_formulas$full, family = 'binomial', data = default)
+# Agregamos la predicciones al dataset de testeo
+table= augment(x=full_model, newdata=test, type.predict='response') 
+# Clasificamos utilizamos el punto de corte
+table=table %>% mutate(predicted_class=if_else(.fitted>0.25, 1, 0) %>% as.factor(),
+           default= factor(default))
+# Creamos la matriz de confusión
+confusionMatrix(table(table$default, table$predicted_class), positive = "1")
+```
+
+## 4-Desbalanceo de la clase
+
+Al explorar el dataset vimos que existía un fuerte desbalance de clase. Sòlo el 3% de las observaciones pertenecen a personas que defaultearon. Esto puede tener un efecto en las estimaciones del modelo y su clasificación final.
+
+Existen dos maneras sencillas con las cuales podemos trabajar con una clase desbalanceada:
+
+  * Sobre-sampleo (oversampling) de la clase minoritaria
+  * Sub-sampleo (undersampling) de la clase mayoritaria
+  
+La función `glm` puede tomar como argumento una columna (`weigths`) de ponderadores para poder hacer esto. Podemos asignar pesos mayores a 1 a la clase minoritaria (oversampling) o menores a 1 a la clase mayoritaria (undersampling). En nuestro vamos a realizar un sobresampleo de la clase minoritaria.
+
+```{r, warning=FALSE}
+# Creamos la columna de ponderadores
+default <- default %>% mutate(wt= if_else(default==1,20,1))
+
+# Creamos los modelos con la data 'balanceada'
+balanced_models <- data_frame(logit_formulas) %>% # dataframe a partir del objeto formulas
+  mutate(models = names(logit_formulas), # columna con los nombres de las formulas
+         expression = paste(logit_formulas), # columna con las expresiones de las formulas
+         mod = map(logit_formulas, ~glm(.,family = 'binomial', data = default, weights = wt))) #Pasamos la columna wt como ponderadores
+```
+
+Vemos las estimaciones de los parametros para el modelo completo. ¿Existen cambios?
+
+```{r,  warning=FALSE, echo=FALSE}
+
+balanced_models %>% 
+  filter(models == "full") %>%
+  mutate(tidy = map(mod,tidy)) %>%
+  unnest(tidy, .drop = TRUE) %>% 
+  mutate(estimate=round(estimate,5),
+         p.value=round(p.value,4))
+```
+
+Ahora veamos la evaluación de los modelos ¿Qué pasó con el porcentaje de deviance explicada? ¿Y con la nula?
+
+```{r, echo=FALSE}
+balanced_models <- balanced_models %>% 
+  mutate(glance = map(mod,glance))
+
+balanced_models %>% 
+  unnest(glance, .drop = TRUE) %>%
+  mutate(perc_explained_dev = 1-deviance/null.deviance) %>% 
+  select(-c(models, df.null, AIC, BIC)) %>% 
+  arrange(deviance)
+```
+
+```{r, echo=FALSE}
+balanced_models <- balanced_models %>% 
+  mutate(pred= map(mod,augment, type.predict = "response"))
+
+
+prediction_full <- balanced_models %>% 
+  filter(models=="full") %>% 
+  unnest(pred, .drop=TRUE)
+roc_full <- roc(response=prediction_full$default, predictor=prediction_full$.fitted)
+
+
+prediction_bad <- balanced_models %>% 
+  filter(models=="stud_inc") %>% 
+  unnest(pred, .drop=TRUE)
+
+roc_bad <- roc(response=prediction_bad$default, predictor=prediction_bad$.fitted)
+
+```
+
+### Violin plots, Curvas ROC y AUCs
+
+Realizamos los gráficos de violin, las curvas ROC y calculamos los AUC
+
+```{r, warning=F, echo=FALSE}
+
+violin_full = ggplot(prediction_full, aes(x=default, y=.fitted, group=default,fill=factor(default))) + 
+  geom_violin() +
+  theme_bw() +
+  guides(fill=FALSE) +
+  labs(title='Violin plot', subtitle='Modelo completo', y='Predicted probability')
+
+violin_bad=ggplot(prediction_bad, aes(x=default, y=.fitted, group=default, fill=factor(default))) + 
+  geom_violin() + 
+  theme_bw() +
+  guides(fill=FALSE) +
+  labs(title='Violin plot', subtitle='Modelo malo', y='Predicted probability')
+
+plot_grid(violin_bad, violin_full)
+
+ggroc(list(full=roc_full, bad=roc_bad), size=1) + geom_abline(slope = 1, intercept = 1, linetype='dashed') + theme_bw() + labs(title='Curvas ROC', color='Modelo')
+
+print(paste('AUC: Modelo completo', roc_full$auc))
+
+print(paste('AUC: Modelo malo', roc_bad$auc))
+
+```
+
+¿Dónde se ven los cambios más notorios respecto a nuestros modelos anteriores que no tenían en cuenta el desbalance de la clase?
+
+### Punto de corte
+
+Volvemos a realizar las pruebas para varios puntos de corte y graficamos el accuracy, la sensibilidad, la especificidad, el recall y la precision para cada uno de ellos.
+
+```{r, echo=FALSE}
+
+cutoffs = seq(0.01,0.99,0.01)
+logit_pred= map_dfr(cutoffs, prediction_metrics)%>% mutate(term=as.factor(term))
+
+ggplot(logit_pred, aes(cutoff,estimate, group=term, color=term)) + geom_line(size=1) +
+  theme_bw() +
+  labs(title= 'Accuracy, Sensitivity y Specificity', subtitle= 'Modelo completo', color="")
+```
+
+¿Qué cambios vemos respecto al gráfico anterior?
+
+### Dataset de testing
+
+Probamos en el dataset de testing nuestro modelo balanceado. No es necesario que le creemos pesos al dataset de testeo.
+
+```{r, echo=FALSE}
+full_model <- glm(logit_formulas$full, family = 'binomial', data = default, weights = wt)
+
+table= augment(x=full_model, newdata=test, type.predict='response') 
+
+table=table %>% mutate(predicted_class=if_else(.fitted>0.25, 1, 0) %>% as.factor(),
+           default= factor(default))
+
+confusionMatrix(table(table$default, table$predicted_class), positive = "1")
+```
+
+
