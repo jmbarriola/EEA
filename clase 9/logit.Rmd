@@ -8,6 +8,8 @@ author: "Juan Manuel Barriola y Diego Kozlowski"
 date: 27-10-2018
 ---
 
+# Segunda parte
+
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
@@ -27,7 +29,7 @@ set.seed(1992)
 
 La regresión logística es útil para problemas de predicción de clases. El problema que vamos a tratar de resolver es predecir si una persona va defaultear su deuda de tarjeta de crédito en base a ciertos predictores.
 
-##1-Conjunto de datos
+## Conjunto de datos
 
 Este conjunto de datos proviene de la librería [ISLR](http://www-bcf.usc.edu/%7Egareth/ISL/)  (Introduction to Statistical Learning Using R) de James, Witten, Hastie y Tibshirani.
 
@@ -43,7 +45,7 @@ Tiene 4 variables:
 * **balance**: Balance promedio que le queda a la persona luego de sus pagos mensuales
 * **income**: Ingreso de la persona
 
-##2-Exploratorias
+## Exploratorias
 
 Analicemos la distribución de la clase
 
@@ -66,7 +68,7 @@ ggpairs(default,mapping = aes(colour= default)) + theme(axis.text.x = element_te
 ¿Cuáles parecen ser buenas variables para predecir la probabilidad de default de una persona?
 
 
-###Limpieza
+### Limpieza
 
 Para modelizar va a ser más necesario tener la variable default como numérica. 
 Definimos la variable como {0,1} para los valores {"No","Yes"}
@@ -76,7 +78,7 @@ default <- default%>% mutate(default= case_when(default=="No"~0,
                                                 default=="Yes"~1))
 ```
 
-##3-Problema
+## Problema
 
 Queremos estimar $P(Default=Yes|X)=P(X)$ para cada individuo y partir de ello poder definir un punto de corte para predecir quienes son los que van a entrar en default.
 
@@ -396,7 +398,9 @@ table=table %>% mutate(predicted_class=if_else(.fitted>0.25, 1, 0) %>% as.factor
 confusionMatrix(table(table$default, table$predicted_class), positive = "1")
 ```
 
-## 4-Desbalanceo de la clase
+# Segunda parte
+
+## Desbalanceo de la clase
 
 Al explorar el dataset vimos que existía un fuerte desbalance de clase. Sòlo el 3% de las observaciones pertenecen a personas que defaultearon. Esto puede tener un efecto en las estimaciones del modelo y su clasificación final.
 
