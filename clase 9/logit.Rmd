@@ -8,7 +8,7 @@ author: "Juan Manuel Barriola y Diego Kozlowski"
 date: 27-10-2018
 ---
 
-# Segunda parte
+# Primera parte
 
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -343,13 +343,18 @@ Hasta ahora hemos evaluado el modelo de manera general, pero el resultado final 
 
 Probamos varios puntos de corte y graficamos el accuracy, la sensibilidad, la especificidad, el recall y la precision para cada uno de ellos.
 
+| Clases predichas / Clases | Positiva | Negativa  |
+|--------------------------|---------|----------|
+| Positiva                 | True Pos | False Pos |
+| Negativa                 | False Neg | True Neg |
+
 Recordemos que:
 
-$sensitivity = recall = \frac{TP}{T} = \frac{TP}{TP+FN}$
+$sensitivity = recall = \frac{TP}{TP+FN}$
 
-$specificity = \frac{TN}{N} = \frac{TN}{TN+FP}$
+$specificity = \frac{TN}{TN+FP}$
 
-$precision = \frac{TP}{P} = \frac{TP}{TP+FP}$
+$precision = \frac{TP}{TP+FP}$
 
 
 ```{r}
