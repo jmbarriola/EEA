@@ -364,7 +364,7 @@ prediction_metrics <- function(cutoff, predictions=prediction_full){
     mutate(predicted_class=if_else(.fitted>cutoff, 1, 0) %>% as.factor(),
            default= factor(default))
   
-  confusionMatrix(table(table$default, table$predicted_class), positive = "1") %>%
+  confusionMatrix(table(table$predicted_class, table$default), positive = "1") %>%
     tidy() %>%
     select(term, estimate) %>%
     filter(term %in% c('accuracy', 'sensitivity', 'specificity', 'precision','recall')) %>%
