@@ -1,0 +1,639 @@
+---
+title: "Regularización: Lasso, Ridge y Elastic Net"
+output: html_notebook
+author: "Juan Manuel Barriola y Diego Kozlowski"
+date: 10-11-2018
+---
+  
+```{r, echo=TRUE, message=FALSE}
+library(dplyr)
+library(tidyr)
+library(broom)
+library(ggplot2)
+library(ISLR)
+library(GGally)
+library(modelr)
+library(cowplot)
+library(glmnet)
+library(rlang)
+library(purrr)
+library(caret)
+set.seed(1992)
+```
+
+Las técnicas de regularización son útiles para trabajar con conjuntos con gran cantidad de variables, las cuales pueden introducir variabilidad en las estimaciones de los parámetros. El problema que vamos a tratar de resolver es predecir el salario de un jugador de la NBA en base a ciertos predictores.
+
+##Conjunto de datos
+
+Vamos a utilizar dos conjuntos de datos provenientes de Kaggle:
+  
+1) **stats** cuenta con las estadísticas de los jugadores (https://www.kaggle.com/koki25ando/salary)
+
+2) **salary** cuenta con los salarios de los jugadores (https://www.kaggle.com/drgilermo/nba-players-stats)
+
+Year: Season     
+
+Player: name   
+
+Pos: Position   
+
+Age: Age
+
+Tm: Team
+
+G: Games
+
+GS: Games Started
+
+MP: Minutes Played
+
+PER: Player Efficiency Rating
+
+TS%: True Shooting % : medida de eficiencia del jugador al lanzar 
+
+3PAr: 3-Point Attempt Rate
+
+FTr:Free Throw Rate
+
+ORB%: Offensive Rebound Percentage
+
+DRB%: Defensive Rebound Percentage
+
+TRB%: Total Rebound Percentage
+
+AST%: Assist Percentage
+
+STL%: Steal Percentage
+
+BLK%: Block Percentage
+
+TOV%: Turnover Percentage
+
+USG%: Usage Percentage
+
+OWS: Offensive Win Shares
+
+DWS: Defensive Win Shares
+
+WS: Win Shares
+
+WS/48: Win Shares Per 48 Minutes
+
+OBPM: Offensive Box Plus/Minus
+
+DBPM: Defensive Box Plus/Minus
+
+BPM: Box Plus/Minus : comparaciones contra el "jugador promedio" de la NBA
+
+VORP: Value Over Replacement: Medida vinculada al BPM
+
+FG: Field Goals
+
+FGA: Field Goal Attempts
+
+FG%: Field Goal Percentage
+
+3P: 3-Point Field Goals
+
+3PA: 3-Point Field Goal Attempts
+
+3P%: 3-Point Field Goal Percentage
+
+2P: 2-Point Field Goals
+
+2PA: 2-Point Field Goal Attempts
+
+2P%: 2-Point Field Goal Percentage
+
+eFG%: Effective Field Goal Percentage
+
+FT: Free Throws
+
+FTA: Free Throw Attempts
+
+FT%: Free Throw Percentage
+
+ORB: Offensive Rebounds
+
+DRB: Defensive Rebounds
+
+TRB: Total Rebounds
+
+AST: Assists
+
+STL: Steals
+
+BLK: Blocks
+
+TOV: Turnovers
+
+PF: Personal Fouls
+
+PTS:Points
+
+```{r}
+# Los datos de salario son para la temporada 2017-2018
+salarios <- read.csv("NBA_season1718_salary.csv", stringsAsFactors = F) %>% rename(salary=season17_18)
+# Filtramos las estadisticas para quedarnos con la temporada 2017
+estadisticas <- read.csv("Seasons_Stats.csv", stringsAsFactors = F) %>% filter(Year>= 2017) %>% select(-c(blanl, blank2))
+glimpse(salarios)
+colnames(estadisticas)
+```
+
+Vemos que salarios contiene el nombre, equipo y salario en dolares de los jugadores. 
+
+Estadisticas es una tabla que contiene 51 variables, de las cuales 46 contienen informacion distintas estadisticas de la temporada 2017-2018.
+
+Hacemos el join por jugador y equipo. Un jugador puede ser cambiado/vendido durante la temporada. Asi mantenemos a los jugadores con las estadisticas correspondientes al equipo con quien acordaron el salario.
+
+```{r}
+nba <- inner_join(salarios, estadisticas, by=c('Player', 'Tm')) %>%
+  select(-c(X.x, X.y, Year)) %>% 
+  drop_na() # Eliminamos los NA
+```
+
+## Analisis Exploratorio
+
+#### Gráfico de la relacion entre la posicion y el salario
+
+```{r}
+ggplot(nba, aes(Pos, salary, fill=Pos)) +
+  geom_boxplot() +
+  geom_text(aes(label=ifelse(salary>28700000,as.character(Player),'')),hjust=-0.1,vjust=0) +
+  theme_bw() +
+  labs(title= "Boxplots: salarios y posicion de juego", x="Posicion", y="Salario")
+```
+
+#### Correlagrama
+
+```{r}
+ggcorr(nba, layout.exp = 2) + labs(title='Correlograma variables cuantitativas')
+
+```
+
+#### GGpairs (algunas variables)
+
+Seleccionamos algunas variables y vemos sus relaciones usando `ggpairs`.
+
+```{r, message=FALSE}
+nba %>% select(salary, Age, PTS, GS, DRB, TRB, AST, BLK) %>% ggpairs() + theme_bw()
+```
+
+## Modelo Lineal
+
+Vamos a probar un modelo lineal que incluya todas las variables (excepto al jugador y equipo). Obtengan las estimaciones de los parametros junto a su p-valor e intervalo de confianza.
+
+### Coeficientes estimados
+
+Vemos los coeficientes estimados y sus p-valores asociados
+
+```{r}
+# Eliminamos jugador y equipo
+nba = nba %>% select(-c(Player, Tm)) 
+# Modelo lineal
+modelo_lineal = nba %>% lm(formula = salary~., data = .)
+#Coeficientes
+lineal_coef= modelo_lineal %>% tidy(conf.int=TRUE)
+
+ggplot(lineal_coef, aes(term, estimate))+
+  geom_point()+
+  geom_pointrange(aes(ymin = conf.low, ymax = conf.high))+
+  labs(title = "Coeficientes de la regresion lineal", x="", y="Estimacion e Int. Confianza") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=90))
+
+ggplot(lineal_coef, aes(reorder(term, -p.value), p.value, fill=p.value))+
+  geom_bar(stat = 'identity', aes(fill=p.value))+
+  labs(title = "P-valor de los regresores", x="", y="P-valor") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_gradient2(high='firebrick', low = 'forestgreen', mid='yellow2',midpoint = 0.5 )
+
+```
+
+¿Qué notamos aqui? 
+
+Hay ciertas coeficientes estimados que presentan una gran variabilidad pero la escala de las variables puede ocultarnos la verdadera variabilidad de los estimadores.
+
+```{r}
+# Reescalamos las variables numericas
+nba_scaled = nba %>% mutate_at(vars(-Pos), scale)
+# Nuevo modelo lineal 
+modelo_lineal_scal = nba_scaled %>% lm(formula = salary~., data = .)
+lineal_coef_scal = modelo_lineal_scal %>% tidy(conf.int=TRUE)
+
+ggplot(lineal_coef_scal, aes(term, estimate))+
+  geom_point()+
+  geom_pointrange(aes(ymin = conf.low, ymax = conf.high))+
+  labs(title = "Coeficientes de la regresion lineal", subtitle="Variables escaladas", x="", y="Estimacion e Int. Confianza") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=90))
+
+ggplot(lineal_coef_scal, aes(reorder(term, -p.value), p.value, fill=p.value))+
+  geom_bar(stat = 'identity', aes(fill=p.value))+
+  labs(title = "P-valor de los regresores",subtitle="Variables escaladas", x="", y="P-valor") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle=90)) + 
+  scale_fill_gradient2(high='firebrick', low = 'forestgreen', mid='yellow2',midpoint = 0.5 )
+
+```
+
+### Evaluacion de los modelos
+
+Obtemos la evaluacion de ambos modelos ¿Cómo esperan que sean los valores de diagnóstico para ambos modelos?
+
+```{r}
+modelo_lineal = modelo_lineal %>% glance() %>% select(r.squared, adj.r.squared, p.value) 
+modelo_lineal_scal = modelo_lineal_scal %>% glance() %>% select(r.squared, adj.r.squared, p.value)
+bind_rows(modelo_lineal, modelo_lineal_scal) %>% mutate(modelo= c('lineal', 'lineal_escalado'))
+```
+
+## Partición Train y Testing
+
+Realizamos una partición entre dataset de entrenamiento y testeo usando la función `resample_partition` del paquete **modelr**
+  
+```{r}
+train_test <- nba %>% resample_partition(c(train=0.7,test=0.3))
+
+nba <- train_test$train %>% as_tibble()
+test <- train_test$test %>% as_tibble()
+```
+
+## Regularizacion
+
+La libreria **glmnet** es permite trabajar con modelos ridge, lasso y elastic net. La funcion que vamos a utilizar es `glmnet`. Es necesario que le pasemos un objeto *matriz* con los regresores y un vector con la variable a explicar (en este caso los salarios)
+
+Con el parametro $\alpha$ indicamos con que tipo de modelo deseamos trabajar:
+
+  * Ridge:  $\alpha=0$
+  
+  * Lasso:  $\alpha=1$
+  
+  * Elastic Net:  $0<\alpha<1$
+  
+### Lasso
+
+En este caso vamos a trabajar con $\alpha=0$.
+
+  1) ¿Cuál es la penalización que introduce el modelo Lasso?
+
+  2) ¿Cómo impacta esto en las variables?
+
+```{r}
+# Vector con los salarios
+nba_salary = nba$salary
+# Matriz con los regresores
+nba_mtx = model.matrix(salary~., data = nba)
+
+# Modelo Lasso
+lasso.mod=glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=1, # Indicador del tipo de regularizacion
+                 standardize = F) # Que esta haciendo este parametro?
+                 
+lasso_coef = lasso.mod %>% tidy()
+
+lasso_coef
+```
+
+#### Gráficos de analisis
+
+El comando `plot` nos permite realizar dos graficos relevantes.
+
+**Grafico de coeficientes en funcion del lambda** 
+```{r}
+plot(lasso.mod, 'lambda')
+```
+
+**Grafico de coeficientes en funcion de la norma de penalizacion** 
+```{r}
+plot(lasso.mod)
+```
+
+¿Qué muestra cada uno de estos graficos? 
+
+Podemos realizar los graficos para los valores de lambda en ggplot.
+
+```{r}
+g1=lasso_coef  %>% ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Lasso con Intercepto",  y="Coeficientes")
+
+g2=lasso_coef %>% filter(term!='(Intercept)') %>% 
+  ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Lasso sin Intercepto", y="Coeficientes")
+
+plot_grid(g1,g2)
+```
+
+Veamos un poco mejor aquellas variables que sobreviven para mayores valores de lambda ¿Qué tienen en común todas estas variables?
+
+```{r}
+lasso_coef %>% filter(term %in% c("G", "GS", "MP", "FGA", "X2PA", "TRB", "PF", "PTS")) %>% 
+  ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line(size=1) + theme_bw() +
+  labs(title="Lasso sin Intercepto", y="Coeficientes", subtitle= "\"Mejores\" variables") +
+  scale_color_brewer(palette = 'Set1')
+```
+
+Vemos que las variables que "sobreviven" para mayores valores de lambda son las que están medidas con una escala mayor.
+
+### Estandarizacion en `glmnet`
+
+Existen dos maneras de poder estandarizar las variables en `glmnet`.
+
+1) Setear `standardize = TRUE`. Con esto se estandariza las regresoras, los coeficientes estimados estan en la escala original de la variable
+
+2) Pasar los conjuntos de datos estandarizados. 
+
+### Lasso estandarizado
+
+```{r}
+# Modelo lasso
+lasso.mod=glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=1, # Indicador del tipo de regularizacion
+                 standardize = TRUE) # Estandarizamos
+                 
+lasso_coef = lasso.mod %>% tidy()
+
+lasso_coef
+```
+
+#### Gráficos de analisis
+
+El comando `plot` nos permite realizar dos graficos relevantes.
+
+**Grafico de coeficientes en funcion del lambda** 
+```{r}
+plot(lasso.mod, 'lambda')
+```
+
+**Grafico de coeficientes en funcion de la norma de penalizacion** 
+```{r}
+plot(lasso.mod)
+```
+
+```{r}
+g1=lasso_coef  %>% ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Lasso con Intercepto",  y="Coeficientes")
+
+g2=lasso_coef %>% filter(term!='(Intercept)') %>% 
+  ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Lasso sin Intercepto", y="Coeficientes")
+
+plot_grid(g1,g2)
+```
+
+¿Podemos decidir cuál es el valor óptimo de lambda?
+
+#### Elección lambda óptimo
+
+Para elegir el valor óptimo de lambda, lo común es realizar cross-validation. La función `cv.glmnet` nos permite realizar esto de manera sencilla.
+
+Al igual que para la función `glmnet` cuenta con los parametros:
+
+  * **x**: matriz de variables
+  
+  * **y**: vector de la variable a predecir
+  
+  * **alpha**: tipo de modelo
+  
+  * **standardize**: flag logico para estandarizar las variables
+
+Nuevo parametro
+  
+  * **type.measure**: funcion de perdida/error que se va a utilizar en CV. Para los modelos de regularizacion el default es MSE
+
+**Salida Base**
+```{r}
+lasso_cv=cv.glmnet(x=nba_mtx,y=nba_salary,alpha=1, standardize = T)
+lasso_cv
+```
+
+Brinda muchisima informacion: 
+
+  * lambda
+  
+  * cvm (Cross-validation mean): es la media del MSE (error) 
+
+  * cvsd (Cross-validation Standard Error): desvio estandar del MSE (error)
+  
+  * cvup y cvlo: Limite superior e inferior
+  
+  * nzero: Coeficientes distintos de cero
+  
+  * lambda.min: lambda para el cual el MSE (error) es minimo
+
+En glm.fit tenemos la cantidad de variables, el valor de lambda y el porcentaje de deviance explicada por el modelo
+
+**Grafico Base**
+```{r}
+plot(lasso_cv)
+```
+
+El gráfico nos muestra la media del MSE con su limite superior e inferior y la cantidad de varaibles que sobreviven para cada valor de lambda.
+
+**Modelr**
+```{r}
+lasso_cv %>% tidy()
+lasso_cv %>% glance()
+```
+
+Seleccionamos el lambda optimo para crear el modelo final
+
+```{r}
+lasso_lambda_opt = lasso_cv$lambda.min
+
+lasso_opt = glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=1, # Indicador del tipo de regularizacion
+                 standardize = TRUE,  # Estandarizamos
+                 lambda = lasso_lambda_opt)
+
+# Salida estandar
+lasso_opt
+# Tidy
+lasso_opt %>% tidy()
+# Glance
+lasso_opt %>% glance()
+
+```
+
+### Ridge
+
+En este caso vamos a trabajar con $\alpha=0$. Vamos a replicar lo que ya realizamos para Lasso.
+
+  1) ¿Cuál es la penalización que introduce el modelo Ridge?
+
+  2) ¿Cómo impacta esto en las variables?
+
+```{r}
+ridge.mod=glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=0, # Indicador del tipo de regularizacion
+                 standardize = TRUE)
+                 
+ridge_coef= ridge.mod %>% tidy()
+
+ridge_coef 
+```
+
+¿Qué ven de distinto en los coeficientes estimados del modelo respecto a Lasso?
+
+#### Gráficos de analisis
+
+**Grafico de coeficientes en funcion del lambda** 
+```{r}
+plot(ridge.mod, 'lambda')
+```
+
+¿Qué ven de distinto en este gráfico respecto al que obtuvimos con la regresión Lasso?
+
+**Grafico de coeficientes en funcion de la norma de penalizacion** 
+```{r}
+plot(ridge.mod)
+```
+
+```{r}
+g1=ridge_coef  %>% ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Ridge con Intercepto",  y="Coeficientes")
+
+g2=ridge_coef %>% filter(term!='(Intercept)') %>% 
+  ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Ridge sin Intercepto", y="Coeficientes")
+
+plot_grid(g1,g2)
+```
+
+#### Elección lambda óptimo
+
+```{r}
+ridge_cv=cv.glmnet(x=nba_mtx,y=nba_salary,alpha=0, standardize = T)
+```
+
+**Grafico Base**
+```{r}
+plot(ridge_cv)
+```
+
+Seleccionamos el lambda óptimo para crear el modelo final
+
+```{r}
+ridge_lambda_opt = ridge_cv$lambda.min
+
+ridge_opt = glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=0, # Indicador del tipo de regularizacion
+                 standardize = TRUE,  # Estandarizamos
+                 lambda = ridge_lambda_opt)
+
+# Salida estandar
+ridge_opt
+# Tidy
+ridge_opt %>% tidy()
+# Glance
+ridge_opt %>% glance()
+
+```
+
+### Elastic Net
+
+El modelo Elastic Net incorpora los dos tipos de penalización: Lasso (Norma L1) y Ridge (Norma L2). El parámetro $\alpha$ regula la importancia de cada penalización, cuanto más cerca de cero será más importante la penalización del tipo Ridge y más cerca de 1, la tipo Lasso.
+
+En este caso vamos a trabajar con $\alpha=0.5$. Vamos a replicar lo que ya realizamos para Lasso y Ridge
+
+```{r}
+elastic.mod=glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=0.5, # Indicador del tipo de regularizacion
+                 standardize = TRUE)
+                 
+elastic_coef= elastic.mod %>% tidy()
+
+elastic_coef 
+```
+
+¿Qué ven de distinto en los coeficientes estimados del modelo respecto a Lasso y Ridge?
+
+#### Gráficos de analisis
+
+**Grafico de coeficientes en funcion del lambda** 
+```{r}
+plot(elastic.mod, 'lambda')
+```
+
+¿Qué ven en este gráfico de distinto a los dos anteriores?
+
+```{r}
+g1=elastic_coef  %>% ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Elastic Net con Intercepto",  y="Coeficientes")
+
+g2=elastic_coef %>% filter(term!='(Intercept)') %>% 
+  ggplot(., aes(log(lambda), estimate, group=term, color=term)) + geom_line() + theme_bw()  + theme(legend.position = 'none') +
+  labs(title="Elastic Net sin Intercepto", y="Coeficientes")
+
+plot_grid(g1,g2)
+```
+
+#### Elección lambda óptimo
+
+```{r}
+elastic_cv=cv.glmnet(x=nba_mtx,y=nba_salary,alpha=0.5, standardize = T)
+```
+
+**Grafico Base**
+
+Presten especial atención al eje superior ¿Qué está sucediendo?
+
+```{r}
+plot(elastic_cv)
+```
+
+Seleccionamos el lambda optimo para crear el modelo final
+
+```{r}
+elastic_lambda_opt = elastic_cv$lambda.min
+
+elastic_opt = glmnet(x=nba_mtx, # Matriz de regresores
+                 y=nba_salary, #Vector de la variable a predecir
+                 alpha=0.5, # Indicador del tipo de regularizacion
+                 standardize = TRUE,  # Estandarizamos
+                 lambda = elastic_lambda_opt)
+
+# Salida estandar
+elastic_opt
+# Tidy
+elastic_opt %>% tidy()
+# Glance
+elastic_opt %>% glance()
+
+```
+
+### Breve comparacion entre modelos
+
+```{r}
+ridge_dev = ridge_coef %>% select(lambda, dev.ratio) %>% distinct() %>%
+  ggplot(., aes(log(lambda), dev.ratio)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = log(ridge_lambda_opt), color='steelblue', size=1.5) +
+  labs(title='Ridge: Deviance') +
+  theme_bw() 
+
+lasso_dev = lasso_coef %>% select(lambda, dev.ratio) %>% distinct() %>%
+  ggplot(., aes(log(lambda), dev.ratio)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = log(lasso_lambda_opt), color='firebrick', size=1.5) +
+  labs(title='Lasso: Deviance') +
+  theme_bw()
+
+elastic_dev = elastic_coef %>% select(lambda, dev.ratio) %>% distinct() %>%
+  ggplot(., aes(log(lambda), dev.ratio)) +
+  geom_point() +
+  geom_line() +
+  geom_vline(xintercept = log(elastic_lambda_opt), color='forestgreen', size=1.5) +
+  labs(title='Elastic Net: Deviance') +
+  theme_bw()
+
+plot_grid(ridge_dev, lasso_dev, elastic_dev)
+```
