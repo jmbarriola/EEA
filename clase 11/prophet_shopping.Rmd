@@ -1,0 +1,264 @@
+---
+title: "GAM en series de tiempo: Prophet"
+output: html_notebook
+author: "Juan Manuel Barriola y Diego Kozlowski"
+date: 10-11-2018
+---
+
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(prophet)
+library(lubridate)
+```
+
+## Exploratorias
+
+```{r}
+shopping <- read.csv('local-shopping_prophet.csv') %>% 
+  rename(.,visitantes=Total.de.Visitantes) %>%
+  mutate(Dia = ymd(Dia))
+glimpse(shopping)
+```
+
+```{r}
+ggplot(shopping, aes(Dia, visitantes)) + geom_line() + theme_bw() + labs(title='Visitantes por dia')
+```
+
+```{r}
+ ggplot(shopping, aes(Dia, visitantes)) + geom_line() + geom_point(color='forestgreen') + theme_bw() + labs(title='Visitantes por dia')
+```
+
+```{r}
+ggplot(shopping, aes(Dia, visitantes)) + geom_point(color='forestgreen') + geom_smooth() + theme_bw() + labs(title='Visitantes por dia: Suavizado')
+```
+
+## Pruebas LOESS
+
+```{r}
+loess=stats::loess(visitantes~as.numeric(Dia), data = shopping, na.action = 'na.exclude', model = T, span=0.01)
+shopping['loess']=predict(loess,shopping)
+loess_1 = ggplot(shopping, aes(Dia,visitantes)) + geom_point() + geom_line(aes(y=loess), color='firebrick', size=1) + 
+  labs(title= "LOESS span:0.01") + theme_bw() 
+
+loess=stats::loess(visitantes~as.numeric(Dia), data = shopping, na.action = 'na.exclude', model = T, span=0.33)
+shopping['loess']=predict(loess,shopping)
+loess_2 = ggplot(shopping, aes(Dia,visitantes)) + geom_point() + geom_line(aes(y=loess), color='forestgreen', size=1) + 
+  labs(title= "LOESS span:0.33") + theme_bw() 
+
+loess=stats::loess(visitantes~as.numeric(Dia), data = shopping, na.action = 'na.exclude', model = T, span=0.66)
+shopping['loess']=predict(loess,shopping)
+loess_3 = ggplot(shopping, aes(Dia,visitantes)) + geom_point() + geom_line(aes(y=loess), color='steelblue', size=1) + 
+  labs(title= "LOESS span:0.66") + theme_bw() 
+
+loess=stats::loess(visitantes~as.numeric(Dia), data = shopping, na.action = 'na.exclude', model = T, span=0.99)
+shopping['loess']=predict(loess,shopping)
+loess_4 = ggplot(shopping, aes(Dia,visitantes)) + geom_point() + geom_line(aes(y=loess), color='purple', size=1) + 
+  labs(title= "LOESS span:0.99") + theme_bw() 
+
+cowplot::plot_grid(loess_1, loess_2, loess_3,loess_4)
+```
+
+## Preparacion del dataset
+
+Prophet requiere que le pasemos el dataset con:
+
+  * **ds**: la variable temporal 
+
+  * **y**: la variable a predecir
+
+```{r}
+# Eliminamos observaciones con menos de 250 visitantes (cuestion de negocio)
+shopping[shopping['visitantes']<250,'visitantes'] = NA
+# Creamos el dataset
+prophet_df = shopping %>% select(Dia, visitantes) %>% rename(., ds=Dia, y=visitantes)
+```
+
+## Modelo
+
+Hay muchos parametros para tener en cuenta. Veremos algunos:
+
+  * **df**: dataframe
+  
+  * **growth**: tipo de tendencia: lineal o logistica
+
+  * **yearly.seasonality**: hay estacionalidad anual?
+  
+  * **yearly.seasonality**: hay estacionalidad diaria?
+  
+  *  **holidays**: dataframe con fechas de vacaciones/eventos especiales
+
+### Modelo basico
+
+La funcion `prophet` crea el modelo, podemos pasarle o no el dataframe.
+
+La funcion `prophet.fit` aplica un modelo creado a un dataframe
+
+```{r}
+# Llamamos solo al modelo
+prophet_base=prophet()
+# Le pasamos el dataset
+prophet_base = fit.prophet(m = prophet_base, prophet_df) 
+```
+Fijense que el modelo automaticamente deshabilita la estacionalidad anual y diaria.
+
+#### Grafico del modelo
+
+Llamando a `plot` obtenemos el valor predicho del modelo y el valor original.
+
+Es dificil de notar pero el modelo realiza predicciones aun para los dias en los cuales no hay datos.
+
+```{r}
+plot(prophet_base,fcst=predict(prophet_base, prophet_df)) +theme_bw()
+```
+
+#### Componentes del modelo
+
+La funcion `prophet_plot_components` nos devuelve los efectos de los componentes en nuestra variable a predecir
+
+```{r}
+prophet_plot_components(prophet_base, fcst=predict(prophet_base, prophet_df)) +theme_bw()
+```
+
+#### Diagnostico del modelo
+
+La funcion `cross_validation` permite realizar pronosticos realizando un esquema de cross-validation temporal y, a partir de ellos, obtener ciertas metricas de performance.
+
+  * **horizon**: horizonte del pronostico
+  
+  * **period**: periodo entre fechas de analisis
+  
+   * **initial**: periodo inicial de entrenamiento
+
+```{r}
+cv_base = cross_validation(prophet_base, initial = 45, period = 7, horizon = 15, units = 'days')
+cv_base
+```
+
+La funcion `performance_metrics` computa varias metricas de performance a partir de un dataframe de cross validation de prophet
+
+```{r}
+performance_metrics(cv_base, rolling_window = 0.5)
+```
+### Modelo con estacionalidad mensual
+
+La funcion `add_seasonality` nos permite agregar nuevas estacionalidades. Definimos:
+
+  * **m**: modelo
+  
+  * **name**: nombre de la estacionalidad
+  
+  * **period**: cantidad de dias del periodo
+  
+  * **fourier.order**: orden de la serie de fourier para modelar la estacionalidad
+
+```{r}
+# Llamamos solo al modelo
+prophet_mensual=prophet()
+# Agregamos la estacionalidad mensual
+prophet_mensual=add_seasonality(prophet_mensual, name='monthly', period=30.5, fourier.order = 4)
+# Le pasamos el dataset
+prophet_mensual = fit.prophet(m = prophet_mensual, prophet_df) 
+```
+Fijense que el modelo automaticamente deshabilita la estacionalidad anual y diaria.
+
+#### Grafico del modelo
+
+```{r}
+plot(prophet_mensual,fcst=predict(prophet_mensual, prophet_df)) +theme_bw()
+```
+
+#### Componentes del modelo
+
+La funcion `prophet_plot_components` nos devuelve los efectos de los componentes en nuestra variable a predecir
+
+```{r}
+prophet_plot_components(prophet_mensual, fcst=predict(prophet_mensual, prophet_df)) +theme_bw()
+```
+
+#### Diagnostico del modelo
+
+
+```{r, message=FALSE, echo=FALSE, results='hide'}
+cv_mensual = cross_validation(prophet_mensual, initial = 45, period = 7, horizon = 15, units = 'days')
+cv_mensual
+```
+
+La funcion `performance_metrics` computa varias metricas de performance a partir de un dataframe de cross validation de prophet
+
+```{r}
+performance_metrics(cv_mensual, rolling_window = 0.5)
+```
+
+### Modelo completo 
+
+Como ultimo paso vamos a agregar las ventas de navidad y ciertos dias de promociones como eventos especiales
+
+#### Dataframe de eventos
+
+Creamos el dataframe de eventos con: nombre del evento, fechas y una "ventana" para definir si el evento se estira a ciertos dias.
+
+```{r}
+christmas = data.frame(holiday= 'christmas',
+  ds=ymd(c('2017-12-16','2017-12-17','2017-12-18',
+                        '2017-12-19','2017-12-20','2017-12-21',
+                        '2017-12-22','2017-12-23')),
+  lower_window= 0,
+  upper_window= 0)
+
+big_sales = data.frame(
+  holiday= 'big_sales',
+  ds= ymd(c('2017-09-16','2017-10-08','2017-10-14',
+                        '2017-11-20','2017-12-03','2017-12-30')),
+  lower_window= 0,
+  upper_window= 0)
+
+holidays= bind_rows(christmas, big_sales)
+glimpse(holidays)
+```
+
+```{r}
+# Llamamos al modelo con el dataset de eventos
+prophet_full=prophet(holidays = holidays)
+# Agregamos la estacionalidad mensual
+prophet_full=add_seasonality(prophet_full, name='monthly', period=30.5, fourier.order = 4)
+# Le pasamos el dataset
+prophet_full = fit.prophet(m = prophet_full, prophet_df) 
+```
+Fijense que el modelo automaticamente deshabilita la estacionalidad anual y diaria.
+
+#### Grafico del modelo
+
+```{r}
+plot(prophet_full,fcst=predict(prophet_full, prophet_df)) +theme_bw()
+```
+
+#### Componentes del modelo
+
+La funcion `prophet_plot_components` nos devuelve los efectos de los componentes en nuestra variable a predecir
+
+```{r}
+prophet_plot_components(prophet_full, fcst=predict(prophet_full, prophet_df)) +theme_bw()
+```
+
+#### Diagnostico del modelo
+
+
+```{r, message=FALSE, echo=FALSE, results='hide'}
+cv_full = cross_validation(prophet_full, initial = 45, period = 7, horizon = 15, units = 'days')
+cv_full
+```
+
+
+```{r}
+performance_metrics(cv_full, rolling_window = 0.5)
+```
+
+## Graficos interactivos
+
+
+```{r}
+dyplot.prophet(prophet_full, fcst=predict(prophet_full, prophet_df))
+```
