@@ -9,10 +9,15 @@ output:
     depth: 2
 ---
 
+```{r package_options, include=FALSE}
+knitr::opts_knit$set(progress = FALSE, verbose = TRUE)
+```
+
+
 # Fully connected layers
 
 
-![red densa](nn.png)
+![red densa](img/nn.png)
 
 Vamos a utilizar la librería 
 
@@ -194,9 +199,12 @@ __ReLu__ es la función de activación que más se utiliza en la actualidad.
 
 Si queremos ver un resumen del modelo:
 
-```{r}
+```{r echo=T, results='hide',eval=F}
 summary(model)
 ```
+
+![](img/fc_model_summary.png)
+
 
 El modelo tiene 235,146 parámetros para optimizar:
 
@@ -218,6 +226,8 @@ La tercera capa
 128*10+10
 ```
 
+-----------
+
 Luego necesitamos __compilar el modelo__ indicando la función de _loss_, qué tipo de optimizador utilizar, y qué métricas nos importan
 
 ```{r}
@@ -238,50 +248,83 @@ Para ajustar el modelo usamos la función `fit()`, acá necesitamos pasar los si
 - `batch_size`: de a cuantas imagenes va a mirar en cada iteración del backpropagation
 - `validation_split`: Hacemos un split en train y validation para evaluar las métricas.
 
-```{r echo=T, results='hide'}
-history <- model %>% fit(
+```{r echo=T, results='hide',eval=F}
+fit_history <- model %>% fit(
   x_train, y_train, 
   epochs = 30, batch_size = 128, 
   validation_split = 0.2
 )
 ```
 
+![](img/fc_training.png)
+
+
+
+```{r include=FALSE, eval=F}
+#guardo la historia. No lo muestro, ni lo corro por default
+saveRDS(fit_history,"results/fc_hist.RDS")
+```
+
+```{r include=FALSE, eval=T}
+#levanto la historia. No lo muestro, pero lo corro por default
+fit_history <- read_rds("results/fc_hist.RDS")
+```
+
+
+
 Mientras entrenamos el modelo, podemos ver la evolución en el gráfico interactivo que se genera en el viewer de Rstudio.
-
-
 
 `fit()` nos devuelve un objeto que incluye las métricas de loss y accuracy
 
 ```{r}
-history
+fit_history
 ```
 
 Este objeto lo podemos graficar con `plot()` y nos devuelve un objeto de _ggplot_, sobre el que podemos seguir trabajando
 
 ```{r}
-plot(history)+
+plot(fit_history)+
   theme_minimal()+
   labs(title= "Evolución de Loss y Accuracy en train y validation")
 ```
 
 
+
+> Noten que el modelo entrenado, con el que podemos predecir, sigue siendo `model`.
+
+__es importante guardar el modelo luego de entrenar, para poder reutilizarlo__
+
+
+```{r eval=FALSE, echo=T}
+model %>% save_model_hdf5("results/fc_model.h5")
+```
+
+y para cargarlo
+
+```{r}
+modelo_preentrenado <- load_model_hdf5("results/fc_model.h5")
+```
+
+```{r}
+modelo_preentrenado
+```
+
 Si queremos evaluar el modelo sobre el conjunto de test (distinto del de validación) podemos usar la función `evaluate()`
 
 ```{r}
-model %>% evaluate(x_test, y_test)
+modelo_preentrenado %>% evaluate(x_test, y_test)
 ```
 
 Para obtener las predicciones sobre un nuevo conjunto de datos utilizamos `predict_classes()`
 
 ```{r}
-model %>% predict_classes(x_test) %>% head(.)
+modelo_preentrenado %>% predict_classes(x_test) %>% head(.)
 ```
 
 
 ## Otros recursos interesantes:
 
-
-#### [Visualización de una Red Fully conected para clasificación de dígitos](http://scs.ryerson.ca/~aharley/vis/fc/)
+[~~Visualización de una Red Fully conected para clasificación de dígitos~~](http://scs.ryerson.ca/~aharley/vis/fc/)
 
 
 [Tensor Flow Playground](http://playground.tensorflow.org/#activation=tanh&batchSize=10&dataset=circle&regDataset=reg-plane&learningRate=0.03&regularizationRate=0&noise=0&networkShape=4,2&seed=0.59794&showTestData=false&discretize=false&percTrainData=50&x=true&y=true&xTimesY=false&xSquared=false&ySquared=false&cosX=false&sinX=false&cosY=false&sinY=false&collectStats=false&problem=classification&initZero=false&hideText=false
