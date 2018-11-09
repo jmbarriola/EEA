@@ -273,7 +273,7 @@ Con el parametro $\alpha$ indicamos con que tipo de modelo deseamos trabajar:
   
 ### Lasso
 
-En este caso vamos a trabajar con $\alpha=0$.
+En este caso vamos a trabajar con $\alpha=1$.
 
   1) ¿Cuál es la penalización que introduce el modelo Lasso?
 
@@ -530,9 +530,6 @@ ridge_opt = glmnet(x=nba_mtx, # Matriz de regresores
 ridge_opt
 # Tidy
 ridge_opt %>% tidy()
-# Glance
-ridge_opt %>% glance()
-
 ```
 
 ### Elastic Net
@@ -603,9 +600,6 @@ elastic_opt = glmnet(x=nba_mtx, # Matriz de regresores
 elastic_opt
 # Tidy
 elastic_opt %>% tidy()
-# Glance
-elastic_opt %>% glance()
-
 ```
 
 ### Breve comparacion entre modelos
@@ -637,3 +631,7 @@ elastic_dev = elastic_coef %>% select(lambda, dev.ratio) %>% distinct() %>%
 
 plot_grid(ridge_dev, lasso_dev, elastic_dev)
 ```
+
+## Testing
+
+Con los modelos optimos que encontramos pueden probar cual es el MSE y RMSE en los datasets de training y testing, para decidir cual es el modelo que minimiza el error en las predicciones.
