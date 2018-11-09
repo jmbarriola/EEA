@@ -45,3 +45,11 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 
 - Regresion Logistica
 - Ejercicio Regresion Logistica
+
+### Clase 10
+
+- Regularizacion: Ridge, Lasso y Elastic Net
+
+### Clase 11
+
+- Prophet: implementacion de GAM para series de tiempo
