@@ -5,7 +5,7 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 
 ## Syllabus:
 
-### Clase 1:
+### [Clase 1](clase 1/Clase 1- Introduccion.nb.html):
 
 - Introducción al entorno R.
 
