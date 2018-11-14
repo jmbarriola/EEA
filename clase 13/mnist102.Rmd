@@ -1,7 +1,7 @@
 ---
-title: "Clase x. Redes Neuronales II^[Estas notas estan basadas en https://tensorflow.rstudio.com/keras/#tutorials]"
+title: "Clase 13. Redes Neuronales II^[Estas notas estan basadas en https://tensorflow.rstudio.com/keras/#tutorials]"
 author: "Diego Kozlowski y Juan Barriola"
-date: "  "
+date: 8-12-2018
 output: 
   html_notebook: 
     toc: true
@@ -335,12 +335,12 @@ Mientras entrenamos el modelo, podemos ver la evolución en el gráfico interact
 
 ```{r include=FALSE, eval=F}
 #guardo la historia. No lo muestro, ni lo corro por default
-saveRDS(fit_history,"results/cnn_hist.RDS")
+saveRDS(fit_history,"../Resultados/cnn_hist.RDS")
 ```
 
 ```{r include=FALSE, eval=T}
 #levanto la historia. No lo muestro, pero lo corro por default
-fit_history <- read_rds("results/cnn_hist.RDS")
+fit_history <- read_rds("../Resultados/cnn_hist.RDS")
 ```
 
 
@@ -367,13 +367,13 @@ __es importante guardar el modelo luego de entrenar, para poder reutilizarlo__
 
 
 ```{r eval=FALSE, echo=T}
-model %>% save_model_hdf5("results/cnn_model.h5")
+model %>% save_model_hdf5("../Resultados/cnn_model.h5")
 ```
 
 y para cargarlo
 
 ```{r}
-modelo_preentrenado <- load_model_hdf5("results/cnn_model.h5")
+modelo_preentrenado <- load_model_hdf5("../Resultados/cnn_model.h5")
 ```
 
 ```{r}
@@ -402,7 +402,7 @@ modelo_preentrenado %>% predict_classes(x_test) %>% head(.)
 Otros recursos interesantes:
 
 
-[~~Visualización de una Red Fully conected para clasificación de dígitos~~](http://scs.ryerson.ca/~aharley/vis/conv/)
+[Visualización de una Red Fully conected para clasificación de dígitos](http://scs.ryerson.ca/~aharley/vis/conv/)
 
 
 [Tensor Flow Playground](http://playground.tensorflow.org/#activation=tanh&batchSize=10&dataset=circle&regDataset=reg-plane&learningRate=0.03&regularizationRate=0&noise=0&networkShape=4,2&seed=0.59794&showTestData=false&discretize=false&percTrainData=50&x=true&y=true&xTimesY=false&xSquared=false&ySquared=false&cosX=false&sinX=false&cosY=false&sinY=false&collectStats=false&problem=classification&initZero=false&hideText=false

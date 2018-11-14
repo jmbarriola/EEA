@@ -38,8 +38,8 @@ rsconnect/
 
 ### Datasets
 
-*.RDS
-*.rds
+ignore/*
+
 *.asc
 *.pl
 
