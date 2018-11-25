@@ -81,3 +81,6 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 	- [datos test](ejercicio_logistica/test.csv)
 	- [resultados test](ejercicio_logistica/resultados-titanic.csv)
 
+
+
+[Preguntas parcial](https://images.mentalfloss.com/sites/default/files/styles/mf_image_16x9/public/red-nose-clown-hed.jpg?itok=ZX1GxhNK&resize=1100x1100)
