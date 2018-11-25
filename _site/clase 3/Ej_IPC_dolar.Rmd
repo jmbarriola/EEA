@@ -1,0 +1,142 @@
+```{r}
+#Librerias
+library(lubridate)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+Realizamos la lectura de los datasets y miramos su estructura
+```{r}
+ipc = read.csv('../Fuentes/ipc-mensual.csv')
+dolar = read.csv('../Fuentes/dolar-diario.csv')
+glimpse(ipc)
+glimpse(dolar)
+```
+
+Renombramos la variable del tipo de cambio por algo más sencillo
+```{r}
+dolar = dolar %>% rename(tipo_cambio = Tipo.de.Cambio.de.Referencia...en.Pesos...por.Dólar)
+```
+
+Creamos las variables fecha, año, mes y día
+```{r}
+dolar = dolar %>% mutate(date=dmy(Fecha), year=year(date), month=month(date),
+                         day=day(date))
+glimpse(dolar)
+```
+
+Seleccionamos el primer día hábil del mes para obtener la primer cotización del mes. La cotización del dólar se disponibiliza el primer día hábil del mes y no el primer día del mes.
+```{r}
+fecha_cotizacion= dolar%>% group_by(year,month) %>% 
+  summarise(day=min(day))
+```
+
+Realizamos el join con el dataframe del primer día hábil
+```{r}
+dolar = dolar %>% inner_join(fecha_cotizacion, by=c('year', 'month', 'day')) %>% select(-c(Fecha, day))
+```
+
+Graficamos la evolución del tipo de cambio para todo el dataset
+```{r}
+ggplot(dolar, aes(x=date, y=tipo_cambio)) +
+  geom_line() +
+  labs(x="Fecha", y="Tipo de cambio", title="Evolución del tipo de cambio")+
+  theme_bw()
+```
+
+Los datos de IPC están en un formato que hace su análisis bastante complicado. Pasamos los datos a un formato más util usando gather().
+```{r}
+ipc= ipc %>% gather(., key   = date, value = ipc, 2:29)
+glimpse(ipc)
+```
+
+Creamos las variables fecha, año y mes 
+```{r}
+ipc= ipc %>% mutate(date=ymd(parse_date_time(date, orders = 'my')),
+                    year=year(date), month=month(date))
+```
+
+Graficamos la distribución del IPC a nivel general
+
+```{r}
+ipc %>% filter(Apertura== "Nivel general") %>% 
+ggplot(., aes(x= date, y = ipc, group = Apertura )) +
+  geom_point(color="firebrick")+
+  geom_line(size= 1,alpha=0.75, color = "firebrick")+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC")+
+  theme_bw()
+
+```
+
+
+
+
+Graficamos la distribución del IPC por grupo 
+```{r}
+ggplot(ipc, aes(x= date, y = ipc, group = Apertura, color = Apertura )) +
+  geom_point()+
+  geom_line(size=1,alpha=0.75)+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC por grupo")+
+  theme_bw()+
+  scale_color_brewer(palette = "Set1")
+```
+
+Procedemos a joinear ambos datasets usando como keys para joinear el año y el mes. No podemos utilizar la fecha porque van a diferir entre las bases.
+Utilizamos un inner join ya que solo queremos quedarnos con los meses para los cuales tenemos información del IPC y del dólar.
+
+```{r}
+ipc_dolar = ipc %>% inner_join(dolar, by=c('year', 'month'))
+glimpse(ipc_dolar)
+```
+
+Como existían dos columnas llamadas date, al realizar el join se le asigna por default el sufijo .x a la columna del primer dataframe y el sufijo .y al del segundo dataframe. Eliminamos una y modificamos el nombre de la restante 
+
+```{r}
+ipc_dolar = ipc_dolar %>% rename(date=date.x) %>% select(-date.y)
+```
+Realizamos algunas estadísticas descriptivas por año y mes para el IPC general y para el tipo de cambio
+
+```{r}
+resumen=ipc_dolar %>% filter(Apertura=="Nivel general") %>%
+              group_by(year) %>% 
+              summarise(dolar_promedio=mean(tipo_cambio),
+                        desvio_dolar=sd(tipo_cambio),
+                        mediana_dolar=median(tipo_cambio),
+                        rango_dolar=max(tipo_cambio)-min(tipo_cambio),
+                        ipc_promedio=mean(ipc),
+                        desvio_ipc=sd(ipc),
+                        mediana_ipc=median(ipc),
+                        rango_ipc=max(ipc)-min(ipc))
+
+resumen
+```
+
+
+Con las dos fuentes de información juntas, podemos realizar gráficos conjuntos
+Como los rangos de las variables son muy diferentes, tenemos que utilizar un segundo eje.
+
+```{r}
+ggplot()+
+  geom_line(data = ipc_dolar %>% filter(Apertura=="Nivel general"),aes(x=date,y=ipc, color ="Nivel general"))+
+  geom_line(data = ipc_dolar,aes(date,tipo_cambio*10, color ="Dolar"))+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC y Dolar")+
+  theme_bw()+
+  scale_y_continuous(sec.axis = sec_axis(~.*.1, name = "Dolar"))
+
+```
+
+También agrupando por apertura
+
+```{r}
+ggplot()+
+  geom_line(data = ipc_dolar,aes(date,ipc))+
+  geom_line(data = ipc_dolar,aes(date,tipo_cambio*7, color ="Dolar"))+
+  scale_y_continuous(sec.axis = sec_axis(~./7, name = "Dolar"))+
+  scale_colour_manual("Color",values=c("darkgreen"))+
+  theme_bw()+
+  labs(x="Fecha", y="IPC", title="Evolución del IPC y Dolar por grupo")+
+  facet_wrap(.~Apertura)
+
+```
+

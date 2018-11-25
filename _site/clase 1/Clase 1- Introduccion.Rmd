@@ -1,0 +1,820 @@
+```{r, message=FALSE, warning=F, comment=">", highlight=T, include=FALSE, strip.white=T}
+rm(list=ls())
+```
+
+
+# Descripción del programa        
+
+
+![https://cran.r-project.org/](Rlogo.png)
+
+## ¿Que es R?
+
+- Lenguaje de Análisis de Datos
+- Software Libre
+- Sintaxis Básica: R base 
+- Sintaxis incremental[^1]: El lenguaje se va ampliando por aportes de Universidades, investigadores y empresas privadas, organizados en librerías (o paquetes)
+- _Comunidad_ web muy grande para realizar preguntas y despejar dudas.
+
+[^1]: Más allá de los comandos elementales, comandos más sofisticados tienen muchas versiones, y algunas quedan en desuso en el tiempo.
+
+![fuente: https://gist.github.com/daroczig/3cf06d6db4be2bbe3368](number-of-submitted-packages-to-CRAN.png)
+
+
+![https://www.rstudio.com/](RStudiologo.png)
+
+El _entorno_ más cómodo para utilizar el _lenguaje_ __R__ es el _programa_ __R studio__
+
+- Rstudio es una empresa que produce productos asociados al lenguaje R, como el programa sobre el que corremos los comandos, y extensiones del lenguaje (librerías).
+ 
+- El programa es _gratuito_ y se puede bajar de la 
+[página oficial](https://www.rstudio.com/) 
+
+
+![Pantalla Rstudio](Pantalla Rstudio.png)
+
+
+![fuente: https://github.com/matthieugomez/benchmark-stata-r/blob/master/output/1e7.png](stataR.png)
+
+
+
+# Lógica sintáctica
+
+## Definición de objetos
+
+El operador __```<-```__ sirve para definir un elemento.  __A la izquierda__ del __```<-```__ debe ubicarse el nombre que tomará el elemento a crear. __Del lado derecho__ debe ir la definición del mismo
+
+
+```{r}
+A <- 1
+```
+
+Al definir un elemento, el mismo queda guardado en el ambiente del programa, y podrá ser utilizado posteriormente para observar su contenido o para realizar una operación con el mismo
+
+```{r}
+A 
+```
+
+Al correr una linea con el nombre del objeto, la consola del programa nos muestra su contenido. Entre Corchetes Observamos el número de orden del elemento en cuestión
+
+El operador __```=```__ es __equivalente__ a __```<-```__, pero en la práctica no se utiliza para la definición de objetos.   
+
+```{r}
+B = 2
+B
+```
+
+__```<-```__ es un operador __Unidireccional__, es decir que:     
+```A <- B``` implica que __A__ va tomar como valor el contenido del objeto __B__, y no al revés.
+```{r}
+A <- B
+A   #Ahora A toma el valor de B, y B continua conservando el mismo valor
+B
+```
+
+## R base
+
+Con _R base_ nos referimos a los comandos básicos que vienen incorporados en el R, sin necesidad de cargar librerías. 
+
+## Operadores lógicos: 
+
+- $>$
+- $>=$
+- $<$
+- $<=$
+- $==$
+- $!=$
+
+```{r}
+A = 1
+B = 2
+
+A >  B
+A >= B
+A <  B
+A <= B
+A == B
+A != B
+
+C <- A != B
+C
+```
+
+Como muestra el último ejemplo, el resultado de una operación lógica puede almacenarse como el valor de un objeto.
+
+## Operadores aritméticos:
+
+```{r}
+#suma
+A <- 5+6
+A
+#Resta
+B <- 6-8
+B
+#cociente
+C <- 6/2.5
+C
+#multiplicacion
+D <- 6*2.5
+D
+# Modulo
+E <- 7%%2
+E
+```
+## Caracteres especiales
+
+- R es sensible a mayúsculas y minúsculas, tanto para los nombres de las variables, como para las funciones y parámetros.
+- Los __espacios en blanco__ y los __carriage return__ (_enter_) no son considerados por el lenguaje. Los podemos aprovechar para emprolijar el código y que la lectura sea más simple[^2].
+
+[^2]: existen ciertas excepciones con algunos paquetes más adelante. 
+
+- El __numeral__ ```#``` se utiliza para hacer comentarios. Todo lo que se escribe después del # no es interpretado por R. Se debe utilizar un # por cada línea de código que se desea anular.
+**SHORTCUT**: En R-Studio se puede seleccionar todo un bloque de texto y comentarlo completo apretando CTRL+SHIFT+C
+
+- Los __corchetes__ ```[]``` se utilizan para acceder a un objeto:
+    - en un vector[n° orden]
+    - en una matriz[fila, columna]
+    - en una lista[n° elemento]
+- el signo __$__ también es un método de acceso, que permite llamar al elemento por su nombre, en dataframes y listas.
+
+- Los __paréntesis__```()``` se utilizan en las funciones para definir los parámetros.
+
+- Las __comas__ ```, ```  se utilizan para separar los elementos. 
+
+Ejemplo: si queremos definir al elemento de la fila 2 y columna 3 de una _tabla_  como el resultado de una _funcion_ con parámetros A=a, B=b y C=c, diremos:
+
+```
+tabla[2,3] <- funcion(A=a, B=b, C=c)
+```
+
+# Tipos de datos y estructuras de datos:
+
+Los tipos de datos son una clase de valores que se pueden construir para representar información. Las estructuras de datos son formas de representar y guardar información 
+
+
+## Tipos de datos
+Los datos tienen distintos _tipos_:   
+
+* El comando class() identifica el tipo de un objeto desde una perspectiva de programación orientada a objetos en R. Podemos redifinir la clase de un objeto
+* El comando type() identifica el tipo de un objeto según el lenguaje R. No podemos modificar el tipo de un objeto
+
+
+__Numeric__
+```{r}
+A <- 1
+class(A)   
+typeof(A)
+```
+
+Tratemos de cambiar la clase y el tipo de nuestro objeto
+
+```{r error=TRUE}
+class(A) <- "nueva_clase"
+class(A)
+typeof(A) <- "nuevo_tipo"
+```
+
+__Integer__
+```{r}
+A <- 1L
+A
+class(A)   
+typeof(A)
+```
+
+__Complex__
+```{r}
+A <- 2+2i
+A
+class(A)   
+typeof(A)
+```
+
+__Character__
+```{r}
+A <-  paste('Soy', 'una', 'concatenación', 'de', 'caracteres', sep = " ")
+A
+class(A)
+typeof(A)
+```
+
+
+__Factor__
+```{r}
+A <- factor("Soy un factor con niveles fijos")
+A
+class(A)
+typeof(A)
+```
+
+La diferencia entre un _character_ y un _factor_ es que el último tiene solo algunos valores permitidos (levels), y se le puede dar un orden
+
+
+```{r}
+A <- factor(c("R","Weka","SPSS","SAS","R"))
+A
+class(A)
+typeof(A)
+# ¿Cuáles son sus niveles?
+levels(A)
+# ¿Está ordenado?
+is.ordered(A)
+```
+
+```{r}
+A <- factor(c("R","Weka","SPSS","SAS","R"), ordered = TRUE)
+A
+class(A)
+typeof(A)
+# ¿Cuáles son sus niveles?
+levels(A)
+# ¿Está ordenado?
+is.ordered(A)
+# ¿Podemos cambiar el orden de los niveles?
+A <- factor(c("R","Weka","SPSS","SAS","R"), ordered = TRUE, levels = c("SPSS","SAS","Weka","R"))
+A
+```
+
+__Logical__
+```{r}
+A <- TRUE
+class(A)
+typeof(A)
+```
+
+__Date__
+```{r}
+A <- as.Date("2017-01-01")
+class(A)
+typeof(A)
+```
+
+## Estructuras de datos
+
+### Vectores
+
+Para crear un __vector__ utilizamos el comando ```c()```, de combinar. Puede tener variables __de cualquier tipo__
+
+```{r}
+C <- c(1, 3, 4)
+C
+typeof(C)
+class(C)
+# ¿Qué longitud tiene?
+length(C)
+# ¿Cuáles son sus dimensiones?
+dim(C)
+```
+
+
+sumarle  2 a cada elemento del __vector__ anterior
+
+```{r}
+C <- C + 2
+C
+```
+
+sumarle  1 al primer elemento, 2 al segundo, y 3 al tercer elemento del __vector__ anterior
+```{r}
+D <- C + 1:3 #esto es equivalente a hacer 3+1, 5+2, 6+9 
+D
+```
+
+```1:3``` significa que queremos todos los números enteros desde 1 hasta 3. 
+
+__Reciclaje de vectores__
+
+Cuando los vectores involucrados en una operación son distinta dimensión, R recicla el vector de menor longitud para poder completar la operación.
+
+```{r}
+v1 <- c(10,20,30,40,50,60)
+v2 <- c(1,2,3)
+v3 <- v1 + v2
+v3
+# ¿Qué pasa si el vector más pequeño no es multiplo del más grande?
+v2 <- c(1,2,3,4)
+v3 <- v1 + v2
+v3
+```
+
+Puede contener datos tipo "character"
+```{r}
+E <- c("Julia","Hadley","Guido")
+E
+```
+
+Para acceder a algún elemento del vector, podemos buscarlo por su número de orden, entre ```[ ]```
+
+```{r}
+elemento2 <- E[2]
+elemento2
+```
+
+para __borrar__ un objeto, utilizamos el comando _```rm()```_
+
+```{r error=TRUE}
+rm(elemento2)
+elemento2
+```
+
+También podemos cambiar el texto del segundo elemento de E, por el texto "var"
+
+```{r}
+E[2] <- "Pablo"
+E
+```
+
+
+### Matrices
+Son vectores que poseen dimensiones: número de columnas y filas. Todos sus datos deben ser de un mismo tipo
+
+```{r}
+# Esta forma de construir la matriz es por columnas por default
+M <- matrix(1:9, nrow = 3, ncol = 3)
+M
+typeof(M)
+class(M)
+# ¿Qué longitud tiene?
+length(M)
+# ¿Cuáles son sus dimensiones?
+dim(M)
+```
+También podemos reciclar vectores al construir una matriz
+
+Otra forma de construir una matriz es uniendo dos o más vectores
+
+```{r}
+v1 <- c(1,2,3)
+v2 <- c(4,5,6)
+# Creamos la matriz uniendo los dos vectores con cbind()
+M <- cbind(v1,v2)
+M
+typeof(M)
+class(M)
+# ¿Qué longitud tiene?
+length(M)
+# ¿Cuáles son sus dimensiones?
+dim(M)
+
+```
+
+¿Qué pasa si queremos sumar una columna con otro tipo de datos?
+
+```{r}
+v3 <- c("a","b","c")
+M <- cbind(M,v3)
+M
+typeof(M)
+class(M)
+```
+
+### Data Frames
+
+Un Data Frame es una tabla de datos, donde cada columna representa una variable, y cada fila una observación. 
+
+Este objeto suele ser central en el proceso de trabajo, y suele ser la forma en que se cargan datos externos, así como la mayoría de los elementos intermedios, hasta aquello que exportemos 
+
+También Se puede crear como la combinación de N vectores de igual tamaño. Por ejemplo, tomamos algunos valores del [Indice de salarios](http://www.indec.gob.ar/bajarCuadroEstadistico.asp?idc=4020B33440609462654542BD0BC320F1523DA0DC52C396201DB4DD5861FFEDC9AD1436681AC84179)
+
+```{r}
+INDICE  <- c(100,   100,   100,
+             101.8, 101.2, 100.73,
+             102.9, 102.4, 103.2)
+
+FECHA  <-  c("Oct-16", "Oct-16", "Oct-16",
+             "Nov-16", "Nov-16", "Nov-16",
+             "Dic-16", "Dic-16", "Dic-16")
+
+
+GRUPO  <-  c("Privado_Registrado","Público","Privado_No_Registrado",
+             "Privado_Registrado","Público","Privado_No_Registrado",
+             "Privado_Registrado","Público","Privado_No_Registrado")
+             
+
+Datos <- data.frame(INDICE, FECHA, GRUPO)
+Datos
+```
+
+Tal como en un __vector__ se ubica a los elementos mediante ```[ ]```, en un __dataframe__ se obtienen sus elementos de la forma __```[fila, columna]```__.
+
+Otra opción es seleccionar la columna, mediante el operador __```$```__, y luego seleccionar dentro de esa columna, por el número de orden.
+
+```{r}
+Datos$FECHA
+Datos[3,2]
+Datos$FECHA[3]
+```
+
+¿que pasa si hacemos ```Datos$FECHA[3,2]``` ?
+
+```{r error=TRUE}
+Datos$FECHA[3,2]
+```
+Nótese que el último comando tiene un número incorrecto de dimensiones, porque estamos refiriendonos 2 veces a la columna FECHA.
+
+### Listas
+
+Contienen una concatenación de objetos de cualquier tipo. Así como un vector contiene valores, un dataframe contiene vectores, una lista puede contener dataframes, pero también vectores, o valores, y _todo ello a la vez_
+
+```{r}
+superlista <- list(A,B,C,D,E,FECHA, DF = Datos, INDICE, GRUPO)
+superlista
+```
+
+Para acceder un elemento de una lista, podemos utilizar el operador __```$```__, que se puede usar a su vez de forma iterativa 
+
+```{r}
+superlista$DF$FECHA[2]
+```
+
+# Loops, condicionales y funciones
+
+## Loops
+
+Un __loop__ es una estructura de código que nos permite recorrer iterativamente un conjunto de comandos, variando algún elemento. Por ejemplo:
+
+```{r}
+
+for(i in 1:10){
+  Cuadrados<- i^2
+  print(Cuadrados)
+}
+
+```
+
+esto se lee como : Para i, que toma los valores de 1 a 10: 
+
+- Calcula el cuadrado de i y definilo como _Cuadrado_
+- Imprimí a _Cuadrado_
+
+También se puede tomar una lista de valores cualesquiera. Por ejemplo reutilizar datos de un dataframe:
+
+```{r}
+Datos
+unique(Datos$GRUPO)
+for(variable in unique(Datos$GRUPO)){
+  print(Datos[Datos$GRUPO == variable,])
+}
+
+```
+
+__Bonus Track:__ Podemos agregar una barra de progreso en nuestro loop
+
+\\ 
+En un Rnotebook no sirve de mucho, pero en un script puede ser útil para loop largos. Sobretodo, es útil cuando tengamos loops adentro de funciones
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+iterator <- c(1:10)
+pb <- txtProgressBar(min = 0, max = length(iterator), style = 3)  
+stepi =1
+for(i in iterator){
+  setTxtProgressBar(pb, stepi)
+  stepi = stepi+1
+  Cuadrados<- i^2
+  print(Cuadrados)
+}
+close(pb)
+
+```
+
+
+
+
+## Estructuras condicionales
+
+Las __estructuras condicionales__ nos permiten definir flujos de ejecución del código, indicando qué se debe correr en cada circunstancia.
+
+```{r}
+A <- 'Esto no es una cadena de caracteres'
+B <- factor('Esto no es una cadena de caracteres')
+
+# Condicional simple
+if (class(A) == "character") {
+  print("No le crean, esto es una cadena de caracteres")
+} 
+
+# Condicional simple
+if (class(B) == "character") {
+  print("No le crean, esto es una cadena de caracteres")
+} 
+
+# Condicional exhaustivo
+if (class(B) == "character") {
+  print("No le crean, esto es una cadena de caracteres")
+} else {print("Esta chequeado, esto NO es una cadena de caracteres")}
+```
+
+Una forma más sencilla y explícita es usar el comando ifelse. 
+
+```{r}
+ifelse(test = class(A) == "character", yes =  "Esto es un caracter",
+       no = "Esto no era un caracter")
+
+```
+
+
+## Funciones
+
+Las __funciones__ nos permiten automatizar todas aquellas partes del código que se repiten mucho. Una vez diseñadas, funcionan igual que cualquier comando. La facilidad para crear las funciones es en buena medida la explicación de que haya tantas contribuciones de usuarios a la expansión del lenguaje.
+
+```{r}
+funcion_prueba <- function(a,b) {
+  print(paste(a, b, sep = " "))
+  
+}
+
+funcion_prueba(a = "Soy la primera parte de un string.", b = "Y yo la segunda parte")
+
+```
+
+También podemos asignar un valor por default.
+
+```{r}
+funcion_prueba <- function(a = "Soy un default.",b) {
+  print(paste(a, b, sep = " "))
+  
+}
+funcion_prueba(b = " A mi me tenes que asignar")
+
+funcion_prueba(a='Lo puedo asignar?', b='Obvio')
+
+```
+
+
+Las funciones que creamos nosotros viven dentro del script donde se las define. Es decir, es necesario volver a correr la definición cada vez que la queremos utilizar. 
+
+Vale mencionar que __lo que ocurre en una función, queda en la función__ excepto que explícitamente pidamos que devuelva el resultado, con el comando ```print()``` o ```return()```
+
+**AYUDA**: En R-Studio se puede acceder a las definición de una función clickeando la función mientras apretamos CTRL
+
+**Ejercicio 1**
+
+Realicen una función que:
+
+* Toma como argumento una matriz compuesta por números
+* Debe imprimir las dimensiones de la matriz
+* Debe indicar si el primer elemento de la matriz es un número par
+* Para la matriz m1 debe imprimir que las dimensiones son 2,2 y que el primer elemento no es par
+* Para la matriz m2 debe imprimir que las dimensiones son 3,2 y que el primer elemento es par
+
+```{r}
+m1 <- matrix(c(9,2,4,8), nrow = 2, ncol = 2)
+m2 <- matrix(c(10,1,5,7,9,17), nrow = 3, ncol = 2)
+```
+
+
+**Funciones anónimas**
+
+Son funciones a las cuales no les asignamos un nombre. Esto suele ser útil para hacer funciones pequeñas dentro de otras funciones o estructuras más complejas.
+
+```{r}
+(function(x) x*2)(10)
+```
+
+## Funciones apply
+
+Los loops que vimos anteriormente ( __for__ loops) suelen lentos y costosos computacionalmente para grandes conjuntos de datos. 
+
+La función apply y sus variantes brindan una alternativa más eficiente para aplicar funciones sobre un conjunto de datos. 
+
+La función **apply** se describe de la siguiente manera: apply(X, MARGIN, FUN, ...). Sus parámetros son:
+
+- **X**: estructura de datos
+- **MARGIN**: parámetro que indica como se aplica la función. Con MARGIN=1 se aplica sobre filas y con MARGIN=2 se aplica sobre columnas 
+- **FUN**: función a aplicar
+
+```{r, error = TRUE}
+# Armamos un dataframe con la recaudación en millones de dolares de la trilogía de Batman de Nolan
+USA  <- c(207,   535,   448)
+Mundo <- c(167,   470,   636)
+pelis  <-  c("Batman Begins", "Dark Knight", "Dark Knight Rises")
+
+batman <- data.frame(USA, Mundo, row.names = pelis)
+batman
+
+# ¿Cuanto recaudó cada película?
+apply(X=batman, MARGIN =1 , FUN=sum)
+# ¿Cuanto recaudó en promedio la trilogía por área?
+apply(X=batman, MARGIN =2 , FUN=mean)
+# ¿Cuanto recaudó cada película en pesos argentinos?
+apply(X=batman, MARGIN =1 , FUN=sum*30.4)
+# Funciones anónimas al rescate
+apply(X=batman, MARGIN =1 , FUN=function(x) sum(x)*30.4)
+```
+
+**Ejercicio 2**
+
+1) Crear un dataframe con el dataset de R: state.x77
+2) Responder:
+a) ¿Cuál es la población total de Estados Unidos?
+b) ¿Cuál es la media de la expectativa de vida?
+c) ¿Cual es la mediana del ingreso en pesos argentinos?
+3) Seleccionar las variables illiteracy y Murder. Crear un indice sumando ambos porcentajes y encontrar cual es el mejor y cual es el peor Estado según este índice 
+
+
+# Lectura y escritura de archivos
+
+R tiene formatos de archivos propios:
+
+- Rdata
+- RDS
+
+## RData
+```{r}
+x <- 1:15
+y <- list(a = 1, b = TRUE, c = "oops")
+
+#Para guardar
+save(x, y, file = "xy.RData")
+
+#Para leer
+load('xy.RData')
+```
+
+Los archivos de tipo __RData__ permiten grabar una _imagen_ de todos los objetos R que querramos.
+
+## __RDS__
+```{r}
+x
+saveRDS(x, "x.RDS")
+
+Z <- readRDS("x.RDS")
+Z
+```
+
+Los archivos de tipo __RDS__ no guardan el nombre del objeto, por lo que podemos nombrarlos cuando los cargamos (aconsejable)
+
+## Archivos de otros formatos
+
+Hay __muchas__ funciones para leer archivos de tipo _.txt_ y _.csv_. La mayoría sólo cambia los parámetros que vienen por default. 
+
+Es importante tener en cuenta:
+
+- encabezado
+- delimitador (```,```, tab, ```;```)
+- separador decimal 
+
+
+``` 
+dataframe <- read.delim(file, header = TRUE, sep = "\t", quote = "\"", dec = ".", fill = TRUE, comment.char = "", ...) 
+```
+Ejemplo. Levantar la base individual de EPH del 1er trimestre 2017
+
+```{r}
+
+individual_t117 <- read.table('../Fuentes/usu_individual_t117.txt',sep=";", dec=",", header = TRUE, fill = TRUE)
+head(individual_t117)
+```
+
+
+## Excel 
+
+Para leer archivos excel debemos utilizar los comandos que vienen con la librería xlsx
+
+```{r}
+# install.packages("xlsx") # por única vez
+library(xlsx) #activamos la librería
+
+#creamos una tabla cualquiera de prueba
+x <- 1:10
+y <- 11:20
+tabla_de_R <- data.frame(x,y)
+
+# escribimos el archivo
+write.xlsx( x = tabla_de_R, file = "archivo.xlsx",sheetName = "hoja 1",row.names = FALSE)
+
+#leemos el archivo
+tabla <- read.xlsx(file = "archivo.xlsx",sheetName = "hoja 1")
+tabla
+```
+
+## SPSS, STATA, SAS
+
+Podemos utilizar la librería _haven_, y los comandos:
+
+- read_spss()
+- read_dta()
+- read_sas()
+
+## Encoding
+Tanto a la hora de leer y escribir archivos, como al trabajar un mismo script desde distintas computadoras, debemos ser cuidadosos con el _encoding_ seteado. El _encoding_ es la forma mediante la cual el sistema interpreta los caracteres del lenguaje natural. Hay muchos _encodings_ diferentes, que interpretan distinto algunos caracteres, como tildes y signos de puntuación.     
+Por ende, si el _encoding_ seteado no es el mismo que el de nuestro script/tabla pueden generarse errores. En medida de lo posible, al escribir nuestros scripts es recomendable evitar estos caracteres. 
+
+R tiene por default el encoding __"ISO-8859-1"__, sin embargo el más habitual en América Latina es __"UTF-8"__. 
+
+- **Lectura de archivos** : Aglunas de las funciones del tipo __read_table__, __read_xlsx__ permiten establecer como uno de sus parametros el _encoding_ deseado 
+- **Encoding utilizado para abrir un script**:File -> Reopen with Encoding
+- **Encoding default con el que se guardan nuestros Scripts**: Tools -> Global Options -> Code -> Saving
+
+# Directorios
+
+Siempre que escribimos el nombre del archivo, R lo busca en el _working directory_. 
+Para saber cual es el directorio de trabajo utilizamos la función ```getwd()```. 
+Para redefinir el directorio de trabajo, utilizamos la función ```setwd```
+
+__No es aconsejable utilizar el directorio de trabajo, si nos olvidamos de definirlo, tiramos los archivos en cualquier lado__ 
+
+Lo más práctico es definir los directorios de trabajo como valores. y pegar el nombre del archivo con las carpetas.
+
+```
+carpeta_fuentes    <- paste("C:/Users/.../Documents/R/fuentes/")
+carpeta_resultados <- paste("C:/Users/.../Documents/R/resultados/")
+```
+
+Es importante notar que se utiliza la barra ```/``` en lugar de ```\``` (que sale de copiar y pegar el directorio en windows)
+
+el nombre completo del archivo puede ser 
+```
+archivo_datos      <- paste0(carpeta_fuentes, "archivo_fuentes.txt")
+archivo_resultados <- paste0(carpeta_resultados, "archivo_resultados.txt")
+```
+
+luego, para leer un excel, se escribe: 
+
+```
+tabla <- read.xlsx(file = archivo_datos,sheetName = "hoja 1") #como es una variable, ya no lleva comillas
+
+```
+
+## Directorios autorreferenciales
+
+Si bien excede los alcances de este curso, dejamos un chunk de código que puede resultar sumamente útil para crear un directorio de trabajo para un proyecto nuevo.
+
+```{r eval=FALSE}
+#install.packages(rstudioapi)
+script.dir <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+bases.dir  <-  paste0(dirname(script.dir),"/Fuentes/")
+#dir.create(bases.dir)
+resultados.dir <- paste0(dirname(script.dir),"/Resultados/")
+#dir.create(resultados.dir)
+
+#chequeo
+dir.exists(bases.dir)
+dir.exists(resultados.dir)
+
+```
+
+La primera línea _encuentra_ la carpeta donde esta guardado el script (si no esta guardado no funciona).     
+La segunda línea crea el nombre del directorio Fuentes
+La tercera línea (anulada) crea el directorio Fuentes
+La cuarta línea crea el nombre del directorio Resultados
+La quinta línea (anulada) crea el directorio Resultados
+
+# Organización scripts
+
+Por último, es aconsejable mantener en todos los script una misma estructura del tipo:
+
+1. Limpiar la memoria ``` rm(list=ls()) ```    
+2. Cargar librerías
+3. Definir directorios
+4. Definir funciones
+5. Levantar archivos     
+... procesamiento ....     
+n. grabar resultados
+
+También es útil organizar las partes del script en capítulos. Para eso   
+
+
+```### escribimos el título del capitulo encerrado entre tres o más corchetes ###```
+
+
+# Ayudas
+
+Hay muchas ayudas, propias del programa, o de usuarios, que pueden ser de ayuda.
+
+- En el programa, para consultar los parámetros de una función, le escribe ```?funcion()```
+
+- [Rstudio](https://www.rstudio.com/resources/cheatsheets/) tiene unos machetes muy útiles
+
+- [Rdocumentation](https://www.rdocumentation.org/)
+
+- [stack overflow](https://stackoverflow.com/questions/tagged/r) conviene llegar desde google
+
+
+# Ejercicios para practicar
+
+- Crear un OBJETO llamado _OBJETO_ definido como el resultado de la suma: 5 + 6
+- Crear un VECTOR _VEC0_ que contenga los números 1, 3, 4.
+- Crear 3 vectores ( _VEC1_, _VEC2_, _VEC3_) que sean transformaciones del anterior
+- Crear 3 vectores con la misma cantidad de elementos que VEC0, pero con variables string (texto) ( _VEC4_, _VEC5_, _VEC6_).
+- Crear un dataframe _DFRAME_ como combinación de todos los __vectores__ creados previamente
+- Crear una lista con cada uno de los __elementos__ creados previamente
+
+- Para todos los valores del vector _VEC0_, imprimir mediante un loop el doble de dichos valores
+- Mediante un loop que itere sobre una de las columnas  __"string"__ del dataframe _DFRAME_, imprimir una variable que combine 3 columnas de dicho dataframe
+- Reescribir el VEC1 del DATAFRAME para que sus elementos sean:      
+    -  El Doble de VEC_0, cuando éste sea mayor a 2
+    -  Iguales a VEC_0, para el resto de los casos 
+- Crear una función llamada _HolaMundo_ que imprima el texto "Hola mundo"
+- Crear una función que devuelva la sumatoria de los números enteros comprendidos entre 1 y un parámetro _x_ a definir
+
+- Levantar la base Individual del 1er trimestre de 2017, de la EPH
+- Guardar la base como un archivo de extensión .RDS
+- Volver a levantar la base, pero como .RDS y asignarla con el nombre _BaseRDS_ ¿tarda más o menos?
+- Levantar del Excel llamado CANASTAS que se encuentra en la carpeta de Fuentes, la hoja "CBT" y definirla como _HojaCBT_.  Pueden usar la función:
+    - read.xlsx  de la librería __xlsx__ 
+    - read_excel de la librería __readxl__
+
+- Levantar el mismo Excel, utilizando un Objeto que contenga el directorio del archivo a levantar.
+    - Chequear con ```dir.exist()``` que lo creamos bien (¿no funcionó? pista: /\\)

@@ -67,7 +67,7 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 ## Ejercicios
 
 - Modelo lineal: 
-	- [Ejercicios](https://github.com/DiegoKoz/EEA/blob/master/ejercicios_modelo_lineal/Ejercicios%20Modelo%20Lineal.pdf)
+	- [consigna](https://github.com/DiegoKoz/EEA/blob/master/ejercicios_modelo_lineal/Ejercicios%20Modelo%20Lineal.pdf)
 	- Resueltos:
 		- [Parte 1](ejercicios_modelo_lineal/parte_1/ejercicios.nb.html)
 		- [Parte 2](ejercicios_modelo_lineal/parte_2/ejercicios.nb.html)
@@ -75,4 +75,9 @@ Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de
 		- [Parte 4](ejercicios_modelo_lineal/parte_4/ejercicios.nb.html)
 		- [Parte 5](ejercicios_modelo_lineal/parte_5/ejercicios.nb.html)
 	
+- Modelo logística:
+	- [consigna](ejercicio_logistica/ejercicio-logistica.nb.html)
+	- [datos train](ejercicio_logistica/train.csv)
+	- [datos test](ejercicio_logistica/test.csv)
+	- [resultados test](ejercicio_logistica/resultados-titanic.csv)
 

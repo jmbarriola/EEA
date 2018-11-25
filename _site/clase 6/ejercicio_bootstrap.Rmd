@@ -1,0 +1,357 @@
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(rsample)
+library(GGally)
+library(robust)
+library(ggridges)
+library(ggthemes)
+library(magrittr)
+```
+
+El objetivo del ejercicio es comparar el ajuste lineal clásico (por mínimos cuadrados) con el ajuste robusto, en presencia de contaminación de la muestra. Evaluaremos la performance de los estimadores a través del bootstrap.
+
+## Modelo simulado. 
+
+Primero fijemos la semilla
+
+```{r}
+set.seed(141414)
+```
+
+
+Para $n=100$, simule el siguiente modelo.
+
+
+__Modelo que sigue el 90\%__ de los datos
+
+$$
+Y=4+1.5X_{1}+8X_{2}-2X_{3}+\varepsilon 
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (1)
+$$
+
+__Modelo que sigue el 10\%__ de los datos (los contaminados)
+
+$$
+Y=4+1.5X_{1}+8X_{2}-60X_{3}+\varepsilon
+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (2)
+$$
+
+
+con
+
+- $X_{1}\sim U[0,10],$
+- $X_{2}\sim U[0,10],$
+- $X_{3}\sim U[0,10],$
+- $\varepsilon\sim N (0,1),$
+
+
+independientes entre sí
+
+Observemos que la única diferencia está en el coeficiente de la variable $X_3$. _El modelo (1) es el modelo verdadero._
+
+
+```{r}
+n <- 100
+x1 <- runif(n,0,10)
+x2 <- runif(n,0,10)
+x3 <- runif(n,0,10)
+err <- rnorm(n,mean = 0, sd = 1)
+# Con los valores de las X y el error calculados, construimos los dos modelos para y
+y1 <- 4+1.5*x1[1:90]+8*x2[1:90]-2*x3[1:90]+err[1:90]
+y2 <- 4+1.5*x1[91:100]+8*x2[91:100]-60*x3[91:100]+err[91:100]
+# Jutnamos ambas y-es
+y <- c(y1,y2)
+# Va a resultar conveniente tener todo junto en un DF (el error no lo vamos a precisar)
+df <- data.frame(x1,x2,x3,y)
+
+#Podemos randomizar el orden de las filas, para que no queden todos los casos patológicos al final
+df <- df[sample(nrow(df)),]
+df
+```
+
+
+una buena forma de visualizar los datos sería con un diagrama de dispersión de Y respecto a las X
+
+```{r}
+df %>% 
+  gather(var,val,1:3) %>% 
+  ggplot(.,aes(val,y,color=var))+
+  geom_point()+
+  facet_wrap(~var, scales = "free")+
+  theme(legend.position = "none")
+
+df %>% 
+  ggplot(.,aes(y=y))+
+  geom_point(aes(x3))+
+  geom_abline(slope = -2,intercept = 4, color="green")+
+  geom_abline(slope = -60,intercept = 4, color = "firebrick")
+
+```
+
+claramente se ven 10 casos con un comportamiento patológico. 
+
+En el segundo gráfico, podemos ver el detalle del comportamiento de las Y respecto a $x_3$:
+
+- Notemos que las observaciones quedan por encima de las rectas trazadas por el efecto aditivo de $x_1$ y $x_2$
+- Si no estuviera dicho efecto, las observaciones quedarían centradas sobre la recta correspondiente, con la dispersión agregada por el término del error.
+
+
+## Ajuste modelo lineal
+
+### Modelo clásico
+
+```{r}
+
+modelo <- lm(y~x1+x2+x3,data = df)
+
+summary(modelo)
+tidy(modelo,conf.int = TRUE,conf.level = 0.95)
+glance(modelo)
+au <- augment(modelo,df)
+
+```
+
+
+¿Son significativas las variables?
+
+### Modelo robusto
+
+```{r}
+modelo_robusto <- lmRob(y~x1+x2+x3,data = df)
+
+summary(modelo_robusto)
+tidy(modelo_robusto)
+glance(modelo_robusto)
+
+au_rob <- augment(modelo_robusto,df)
+```
+
+
+En el modelo robusto ¿Son significativas las variables?
+
+_nota: Para el modelo lmRob no esta implementado `confint()`, por lo que no podemos calcular los intervalos de confianza en la función `tidy()`_ 
+
+
+
+#### Gráficos de los residuos
+
+Notemos las diferencias en los gráficos de los residuos de los dos modelos:
+
+```{r}
+ggplot(au, aes(.fitted, .resid)) +
+  geom_point()+
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE)+
+  labs(title= "OLS")
+
+
+ggplot(au_rob, aes(.fitted, .resid)) +
+  geom_point()+
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = FALSE)+
+  labs(title= "Modelo Robusto")
+
+```
+
+
+para los valores estimados vs los residuos:
+
+- En ambos casos las observaciones patológicas toman valores extremos
+- `lm()`: Hay una estructura en los residuos de las observaciones no patológicas, hay una pendiente negativa entre los residuos y los valores estimados.
+- `lmRob()`: No hay pendiente, están todos cercanos a 0 (ajustan mejor!)
+
+
+```{r}
+
+ggplot(au, aes(sample= .resid))+
+  stat_qq()+
+  geom_abline()+
+  labs(title="QQ-plot OLS",
+       x = "Distribución teórica",
+       y= "Residuos")
+
+
+ggplot(au_rob, aes(sample= .resid))+
+  stat_qq()+
+  geom_abline()+
+  labs(title="QQ-plot Modelo Robusto",
+       x = "Distribución teórica",
+       y= "Residuos")
+```
+
+
+en los QQ-plots:
+
+- Nuevamente hay 10 observaciones patológicas que no siguen la distribución teórica en ningún caso
+- `lm()`: El resto de las observaciones tampoco sigue la distribución teórica, sino que en los cuantiles más altos hay una sobre-estimación de los residuos.
+- `lmRob()`: Hace un buen trabajo para las observaciones no patológicas
+
+
+
+## Bootstrap
+
+
+![Bootstrap^[diagrama basado en http://www.texample.net/tikz/examples/bootstrap-resampling/
+]](bootstrap-resampling.png)
+
+
+- Extraemos una muestra de tamaño 100 con reemplazo de la muestra ${(X_{1i} , X_{2i} , X_{3i} , Y_i )}_{1≤i≤n}$ .
+
+- Ajustamos ambos estimadores (clásico y robusto) a cada muestra bootstrapeada.
+
+
+### Bootstrap casero
+
+Primero hagamos un sampleo manual, para comprender los pasos.
+
+Queremos tomar nuestro dataframe y construir 100 dataframes de la misma forma, donde cada observación se haya seleccionado de forma aleatoria de nuestro dataset original
+
+```{r}
+set.seed(1234)
+muestras_bootstrapeadas <- list()
+#quiero construir 100 muestras bootstrpeadas. Podrían ser más
+for (i in 1:100) { 
+  #quiero que los dataset que muestree tengan el mismo tamaño que el dataset original
+  muestra_i <- data.frame()
+  index_i <- c()
+  for (j in 1:nrow(df)) { 
+    #eligo el número indice de la muestra de forma aleatoria entre los indices de mi set original
+    index <- sample(rownames(df),1)
+    #selecciono de mi df el elemento con el indice correspondiente
+    muestra_unitaria <- df[index,]
+    #agrego la observación a la muestra i
+    muestra_i <- bind_rows(muestra_i,muestra_unitaria)
+    #guardo el indice
+    index_i <- c(index_i,index)
+  }
+  bootstrap_i <- list("df"=muestra_i, "indices" = index_i)
+  muestras_bootstrapeadas[[i]] <- bootstrap_i
+}
+
+```
+
+
+El resultado es una lista de 100 elementos, cada uno de los cuales es una muestra reconstruida a partir de la muestra original, donde tomamos los elementos __con reposición__: esto significa que podemos tomar más de una vez una observación.
+
+Podemos ver esto revisando los índices de la primera muestra:
+
+
+```{r }
+data.frame(table(muestras_bootstrapeadas[[1]]$indices)) %>% 
+  arrange(-Freq)
+```
+
+por ejemplo, la observación 85 se tomo seis veces, la 56 cinco veces, etc. 
+
+### Tidyverse al rescate
+
+Sin embargo, hay formas más _tidy_ de hacer un bootstrap. Para esto utilizamos la librería `library(rsample)`
+
+```{r}
+muestras_bootstrapeadas <- bootstraps(df,times = 100)
+muestras_bootstrapeadas
+```
+
+Noten que el resultado es un df con dos columnas: un id y los _splits_ que contienen para cada bootstrapeo un df.
+
+Tomemos un elemento para ver qué tiene dentro
+
+```{r}
+
+muestras_bootstrapeadas %>% 
+  filter(id=="Bootstrap001") %$%
+  splits[[1]][[1]]
+```
+
+```{r}
+data.frame(table(muestras_bootstrapeadas %>% 
+  filter(id=="Bootstrap001") %$%
+  splits[[1]][[2]])) %>% 
+  arrange(-Freq)
+
+```
+
+
+Cada split contiene un dataframe con la muestra bootstrapeada, y un vector con los números de fila originales. 
+
+Si realizamos un table() podemos ver que algunos elementos tienen frecuencia mayor a 1. Esto es por realizamos un muestreo __con reposición__ y por lo tanto hay una probabilidad de elegir más de una vez la misma muestra. 
+
+Este proceso __replica el muestreo poblacional__ pero ahora consideramos a __la muestra original como la población__, de la cual tomamos n muestras. 
+
+
+Nos va a resultar conveniente envolver las funciones de forma tal que sólo necesiten un parámetro de entrada, para mapear
+```{r}
+ajuste_lineal_simple <- function(df){
+  lm(y~x1+x2+x3,data = df)
+}
+
+ajuste_lineal_robusto <- function(df){
+  lmRob(y~x1+x2+x3,data = df)
+}
+
+```
+
+
+Con esto podemos calcular el ajuste lineal y el ajuste robusto para cada una de las muestras. 
+
+```{r}
+muestras_bootstrapeadas <- muestras_bootstrapeadas %>% 
+mutate(lm_simple = map(splits, ajuste_lineal_simple),
+       lm_rob = map(splits, ajuste_lineal_robusto))
+
+
+muestras_bootstrapeadas
+```
+
+
+
+Para recuperar los parámetros de cada una de las estimaciones, vamos a realizar un `map()` sobre la función ` tidy()`
+
+
+```{r}
+
+parametros <- muestras_bootstrapeadas %>%
+  gather(3:4) %>% 
+  mutate(tdy = map(statistic,tidy)) %>% 
+  unnest(tdy, .drop=TRUE)
+
+parametros
+
+```
+
+
+Con todas estas estimaciones podemos graficar los resultados
+
+```{r}
+parametros_verdaderos <- data_frame(term=c("(Intercept)","x1","x2","x3"),valor=c(4,1.5,8,-2))
+
+ggplot(parametros, aes(estimate, fill = model))+
+  geom_histogram(position= "dodge")+
+  geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
+  scale_color_manual(values = "darkolivegreen","")+
+  theme_minimal()+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom")+
+  facet_wrap(~term,scales = "free")
+```
+
+```{r}
+ggplot(parametros, aes(estimate,y=model, fill = model))+
+  geom_density_ridges(alpha=.6)+
+  theme_minimal()+
+  geom_vline(data=parametros_verdaderos,aes(xintercept = valor,color = "Verdadero"), size=1)+
+  scale_color_manual(values = "darkolivegreen","")+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom")+
+  facet_wrap(~term,scales = "free")
+```
+
+Algunas conclusiones:
+
+- La distribución de los estimadores en el modelo robusto esta __centrada en los parámetros verdaderos__
+- La distribución de los estimadores en el modelo robusto esta __Tiene mucha menos variabilidad__
+- Particularmente para la variable patológica ($x_3$), la distribución del modelo lineal simple es especialmente mala, con el valor verdadero muy alejado del centro de masa.
+
+
+
+

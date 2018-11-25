@@ -1,0 +1,667 @@
+```{r, warning=FALSE}
+rm(list=ls())
+```
+
+# [Tidyverse](https://www.tidyverse.org/)         
+
+Este paquete agrupa una serie de paquetes que tienen una misma lógica en su diseño y por ende funcionan en armonía.     
+Entre ellos usaremos principalmente __ggplot__ para realizar gráficos, y __dplyr__ y __tidyr__ para realizar transformaciones sobre nuestro set de datos.
+
+A continuación cargamos la librería a nuestro ambiente. Para ello debe estar previamente instalada en nuestra pc.
+```{r,eval=FALSE}
+library(tidyverse)
+```
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+```
+Para mostrar el funcionamiento básico de tydyverse retomaremos el ejemplo de la clase 1, con lo cual volvemos a crear el set de datos del [Indice de salarios](http://www.indec.gob.ar/bajarCuadroEstadistico.asp?idc=4020B33440609462654542BD0BC320F1523DA0DC52C396201DB4DD5861FFEDC9AD1436681AC84179).
+
+```{r, warning=FALSE}
+
+INDICE  <- c(100,   100,   100,
+             101.8, 101.2, 100.73,
+             102.9, 102.4, 103.2)
+
+FECHA  <-  c("Oct-16", "Oct-16", "Oct-16",
+             "Nov-16", "Nov-16", "Nov-16",
+             "Dec-16", "Dec-16", "Dec-16")
+
+
+GRUPO  <-  c("Privado_Registrado","Público","Privado_No_Registrado",
+             "Privado_Registrado","Público","Privado_No_Registrado",
+             "Privado_Registrado","Público","Privado_No_Registrado")
+
+Datos <- data.frame(INDICE, FECHA, GRUPO)
+```
+
+
+## Dplyr
+
+El caracter principal para utilizar este paquete es ```%>%``` , _pipe_ (de tubería).
+
+Los ```%>%``` toman el set de datos a su izquierda, y los transforman mediante los comandos a su derecha, en los cuales los elementos de la izquierda están implícitos. En otros términos.
+
+$f(x,y)$ es equivalente a $x$ %>% $f(.,y)$ 
+
+Veamos las principales funciones que pueden utilizarse con la lógica de este paquete:
+
+### glimpse
+
+Permite ver la estructura de la tabla. Nos muestra: 
+
+* número de filas
+* número de columnas
+* nombre de las columnas
+* tipo de dato de cada columna
+* las primeras observaciones de la tabla
+
+```{r}
+glimpse(Datos)
+```
+
+
+### filter
+
+Permite filtrar la tabla acorde al cumplimiento de condiciones lógicas
+ 
+```{r}
+Datos %>% 
+  filter(INDICE>101 , GRUPO == "Privado_Registrado")
+```
+
+Nótese que en este caso al separar con una  __,__ las condiciones se exige el cumplimiento de ambas. En caso de desear que se cumpla una sola condición debe utilizarse el caracter __|__
+
+```{r}
+Datos %>% 
+  filter(INDICE>101 | GRUPO == "Privado_Registrado")
+```
+
+### rename
+Permite renombrar una columna de la tabla. Funciona de la siguiente manera: 
+ ```Data %>% rename( nuevo_nombre = viejo_nombre )``` 
+```{r}
+Datos %>% 
+  rename(Periodo = FECHA)
+```
+Nótese que a diferencia del ejemplo de la función __filter__ donde utilizábamos __==__ para comprobar una condición lógica, en este caso se utiliza sólo un __=__ ya que lo estamos haciendo es _asignar_ un nombre.
+
+### mutate
+Permite agregar una variable a la tabla (especificando el nombre que tomará esta), que puede ser el resultado de operaciones sobre otras variables de la misma tabla.       
+
+En caso de especificar el nombre de una columna existente, el resultado de la operación realizada "sobrescribirá" la información de la columna con dicho nombre
+```{r}
+Datos <- Datos %>% 
+  mutate(Doble=INDICE*2)
+Datos
+```
+
+### case_when
+Permite definir una variable, la cual toma un valor particular para cada condición establecida. En caso de no cumplir ninguna de las condiciones establecidas la variable tomara valor __NA__
+La sintaxis de la función es case_when( _condicion lógica1_ __~__ _valor asignado1_).
+
+```{r}
+Datos <- Datos %>% 
+  mutate(Caso_cuando = case_when(GRUPO == "Privado_Registrado"   ~ INDICE*2,
+                                 GRUPO == "Público"              ~ INDICE*3,
+                                 GRUPO == "Privado_No_Registrado"~ INDICE*5))
+Datos
+```
+
+### select
+Permite especificar la serie de columnas que se desea conservar de un DataFrame. También pueden especificarse las columnas que se desean descartar (agregándoles un _-_). Muy útil para agilizar el trabajo en bases de datos de gran tamaño.
+```{r}
+Datos2 <- Datos %>% 
+  select(INDICE, FECHA, GRUPO)
+Datos2
+
+Datos <- Datos %>% 
+  select(-c(Doble,Caso_cuando))
+Datos
+```
+
+### arrange
+Permite ordenar la tabla por los valores de determinada/s variable/s. Es útil cuando luego deben hacerse otras operaciones que requieran del ordenamiento de la tabla
+```{r}
+Datos <- Datos %>% 
+  arrange(GRUPO, INDICE)
+Datos
+```
+
+### summarise
+Crea una nueva tabla que resuma la información original. Para ello, definimos las variables de resumen y las formas de agregación.
+```{r}
+Datos %>% 
+  summarise(Indprom = mean(INDICE))
+
+```
+
+### group_by
+Esta función permite realizar operaciones de forma agrupada. Lo que hace la función es "separar" a la tabla según los valores de la variable indicada y realizar las operaciones que se especificaba  continuación, de manera independiente para cada una de las "subtablas". En nuestro ejemplo, sería útil para calcular el promedio de los indices por _Fecha_ 
+```{r}
+Datos %>% 
+  group_by(FECHA) %>%
+  summarise(Indprom = mean(INDICE))
+```
+
+## Joins
+
+Otra implementación muy importante del paquete dplyr son las funciones para unir tablas (joins)
+
+
+![fuente: http://rstudio-pubs-static.s3.amazonaws.com/227171_618ebdce0b9d44f3af65700e833593db.html](joins.png)         
+
+###left_join    
+
+Veamos un ejemplo de la función __left_join__ (una de las más utilizadas en la práctica).       
+Para ello crearemos previamente un Dataframe que contenga un Ponderador para cada uno de los Grupos del Dataframe _Datos_. Aprovecharemos el ejemplo para introducir la función __weigthed.mean__, y así calcular un Indice Ponderado.
+
+```{r}
+Ponderadores <- data.frame(GRUPO = c("Privado_Registrado","Público","Privado_No_Registrado"),
+                            PONDERADOR = c(50.16,29.91,19.93))
+
+Datos_join <- Datos %>% 
+  left_join(.,Ponderadores, by = "GRUPO")
+Datos_join
+
+Datos_Indice_Gral <- Datos_join %>% 
+  group_by(FECHA) %>% 
+  summarise(Indice_Gral = weighted.mean(INDICE,w = PONDERADOR))
+
+Datos_Indice_Gral
+```
+
+## Tidyr
+
+El paquete tidyr esta pensado para facilitar el emprolijamiento de los datos.
+
+__Gather__ es una función que nos permite pasar los datos de forma horizontal a una forma vertical. 
+
+__spread__ es una función que nos permite pasar los datos de forma vertical a una forma horizontal.
+
+![fuente: http://www.gis-blog.com/data-management-with-r-tidyr-part-1/](spreadVSgather.png)
+
+
+```{r}
+#Utilzamos un conjunto de datos que viene con la librería datasets
+library(datasets)
+
+data(iris)
+iris <- iris %>% 
+  mutate(id = 1:nrow(.)) %>%  #le agrego un ID
+  select(id, everything()) # lo acomodo para que el id este primero. 
+
+iris
+```
+
+
+  
+### Gather y Spread
+
+```{r}
+iris_vertical <- iris %>% gather(., # el . llama a lo que esta atras del %>% 
+                                 key   = Variables,
+                                 value = Valores,
+                                 2:5) #le indico que columnas juntar
+iris_vertical
+```
+
+Podemos deshacer el __gather__ con un __Spread__
+```{r}
+iris_horizontal <- iris_vertical %>%
+  spread(. ,
+         key   = Variables, #la llave es la variable que va a dar los nombres de columna
+         value = Valores) #los valores con que se llenan las celdas
+iris_horizontal
+```
+
+## Lubridate
+
+El paquete lubridate está pensado para trabajar con los datos tipo fecha(date) o fecha-hora(datetime) para cambiarles el formato, realizar operaciones y extraer información
+
+### Cambio de formato
+
+Existe una gran cantidad de funciones para realizar esto. La idea general es poder llevar los objetos datetime a un formato común compuesto de los elementos: año, mes, día, hora, minuto y segundo (también se puede setear el huso horario)
+
+```{r}
+fecha  <- "04/12/92 17:35:16"
+fecha
+```
+
+Con la función dmy_hms podemos convertir este string a una fecha: estamos indicando que el formato de la fecha es día(d), mes(m), año(y), hora(h), minuto(m) y segundo(s)
+```{r}
+fecha  <- dmy_hms(fecha)
+fecha
+```
+Muchas funciones de lubridate operan con esta misma lógica
+
+Otra función para realizar un cambio de formato es *parse_date_time*. Permite construir objetos datetime a partir de datos más complejos, como por ejemplo cuando aparece el nombre del mes y el año.
+
+En el parámetro *x* pasamos el dato de la fecha y en el parámetro *orders* especificamos el orden en el cual se encuentra la información de la fecha
+
+```{r}
+fecha2  <- "Dec-92"
+fecha2 <- parse_date_time(fecha2, orders = 'my')
+fecha2
+```
+
+
+### Extracción de información
+
+Existen muchas funciones muy sencillas para extraer información de un objeto datetime. Algunas son
+
+```{r}
+year(fecha) # Obtener el año
+month(fecha) #Obtener el mes
+day(fecha) # Obtener el día
+wday(fecha, label = TRUE) #Obtener el nombre del día
+hour(fecha) #Obtener la hora
+```
+
+### Operaciones
+
+Podemos sumar o restarle cualquier período de tiempo a un objeto datetime
+
+```{r}
+# Sumo dos días 
+fecha + days(2)
+# Resto 1 semana y dos horas
+fecha - (weeks(1) + hours(2))
+```
+
+
+# Gráficos
+
+### Gráficos Básicos en R
+
+Rbase  tiene algunos comandos genéricos para realizar gráficos, que se adaptan al tipo de información que se le pide graficar, por ejemplo:
+
+- plot()
+- hist()
+
+
+
+```{r}
+iris
+
+plot(iris)
+plot(iris$Sepal.Length,type = "p")
+plot(iris$Sepal.Length,type = "l")
+plot(iris$Sepal.Length,type = "b")
+hist(iris$Sepal.Length, col = "lightsalmon1", main = "Histograma")
+
+```
+
+
+Para guardar los gráficos
+
+```{r}
+png("Grafico1.png")
+plot(iris$Sepal.Length,type = "b")
+dev.off()
+
+```
+
+
+La función ```png()``` _abre el dispositivo de imagen_, luego podemos hacer los gráficos, y a continuación, con ```dev.off()``` se _cierra el dispositivo_ y se graban los gráficos. 
+
+Los gráficos del R base son útiles para escribir de forma rápida y obtener alguna información mientras trabajamos. Muchos paquetes estadísticos permiten mostrar los resultados de forma gráfica con el comando plot (por ejemplo, las regresiones lineales ```lm()```).       
+ 
+Sin embargo, existen librerías mucho mejores para crear gráficos de nivel de publicación. La más importante es __ggplot2__, que a su vez tiene extensiones mediante otras librerías.
+
+
+#[Ggplot2](http://ggplot2.tidyverse.org/reference/)
+
+
+ggplot tiene su sintaxis propia. La idea central es pensar los gráficos como una sucesión de capas, que se construyen una a la vez.    
+
+- El operador __```+```__ nos permite incorporar nuevas capas al gráfico.
+
+- El comando ```ggplot()``` nos permite definir los __datos__ y las __variables__ (x,y,color,forma,etc). 
+
+- Las sucesivas capas nos permiten definir:
+    - Uno o más tipos de gráficos (de columnas, ```geom_col()```, de línea, ```geom_line()```, de puntos,```geom_point()```, boxplot, ```geom_boxplot()```)
+    - Títulos ```labs()```
+    - Estilo del gráfico ```theme()```
+    - Escalas de los ejes ```scale_y_continuous```,```scale_x_discrete``` 
+    - División en subconjuntos ```facet_wrap()```,```facet_grid()```
+
+ggplot tiene __muchos__ comandos, y no tiene sentido saberlos de memoria, es siempre útil reutilizar gráficos viejos y tener a mano el [machete](https://www.rstudio.com/wp-content/uploads/2016/11/ggplot2-cheatsheet-2.1.pdf).
+
+
+
+```{r}
+library(ggplot2)
+library(ggthemes)  # estilos de gráficos
+library(ggrepel)   # etiquetas de texto más prolijas que las de ggplot
+library(scales)    # tiene la función 'percent()'
+
+
+ggplot(data = iris, aes(x = Sepal.Length, fill = Species))+
+  geom_histogram(alpha=0.75, binwidth = .5)+
+  facet_wrap(~Species)+
+  labs(title = "Histograma por especie")+
+  theme(legend.position = 'none')
+```
+
+
+Lo útil de hacer gráficos en R, en lugar de por ejemplo excel, es que podemos hacer uso de más dimensiones, por ejemplo:
+
+- Gráficos que necesitan la información a nivel de microdatos. __puntos__,  __boxplots__, __Kernels__, etc.
+- Abrir el mismo gráfico según alguna variable discreta: ```facet_wrap()```
+- Parametrizar otras variables, para aumentar la dimensionalidad del gráficos.
+    - [__color__](http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf) ```color = ```
+    - __relleno__```fill = ```
+    - __forma__ ```shape = ```
+    - __tamaño__ ```size = ```
+    - __transparencia__ ```alpha = ```
+
+Esto permite tener, en el plano, gráficos de muchas dimensiones de análisis
+
+Cuando queremos utilizar estos parámetros para representar una variable, los definimos __dentro del aes()__, ```aes(... color = ingresos)```, cuando queremos simplemente mejorar el diseño, se asignan por fuera, o dentro de cada tipo de gráficos, ```geom_col(color = 'green')```.
+
+
+__levanto una base de microdatos de EPH para graficar__
+
+```{r}
+
+Individual_t117 <- read.table(paste0("../Fuentes/usu_individual_t117.txt"),
+                              sep=";", dec=",", header = TRUE, fill = TRUE)
+```
+
+
+### Boxplots
+
+Hacemos un procesamiento simple: Sacamos los ingresos iguales a cero y las no respuestas de nivel educativo.    
+Las variables sexo( CH04 ) y Nivel educativo están codificadas como números, y el R las entiende como numéricas.
+
+
+
+Es importante que las variables sean del tipo que conceptualmente les corresponde (el nivel educativo es una variable categórica, no continua), para que el ggplot pueda graficarlo correctamente. 
+
+```{r}
+
+ggdata <- Individual_t117 %>% 
+  filter(P21>0, !is.na(NIVEL_ED)) %>% 
+  mutate(NIVEL_ED = as.factor(NIVEL_ED),
+         CH04     = as.factor(CH04))
+```
+
+
+
+
+si queremos hacer un boxplot del ingreso para cada nivel educativo, asignamos esta variable a _x, group y fill_
+```{r}
+
+ggplot(ggdata, aes(x = NIVEL_ED, y = P21, group = NIVEL_ED, fill = NIVEL_ED )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))
+```
+
+Si queremos agregar la dimensión _sexo_, podemos hacer un ```facet_wrap()```
+
+```{r}
+
+ggplot(ggdata, aes(x= NIVEL_ED, y = P21, group = NIVEL_ED, fill = NIVEL_ED )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))+
+  facet_wrap(~ CH04, labeller = "label_both")
+```
+
+En este gráfico, el foco de atención sigue puesto en las diferencias de nivel educativo, pero _neutralizamos_ el efecto de la variable sexo.     
+
+Si lo que queremos hacer es poner el foco de atención en las diferencias por sexo, _neutralizamos_ el efecto del nivel educativo, facetiando por nivel educativo.
+
+
+```{r}
+ggplot(ggdata, aes(x= CH04, y = P21, group = CH04, fill = CH04 )) +
+  geom_boxplot()+
+  scale_y_continuous(limits = c(0, 40000))+
+  facet_wrap(~ NIVEL_ED, labeller = "label_both")
+
+```
+
+
+### Kernels
+
+Podemos hacer una nueva versión del gráfico 2. Utilizando un procesamiento similar al que hicimos antes.
+
+```{r warning=FALSE}
+
+datagraf <-Individual_t117 %>% 
+  select(REGION,P47T,T_VI, TOT_P12, P21 , PONDII, CH04) %>% 
+  filter(!is.na(P47T), P47T > 0 ) %>% 
+  mutate(REGION             = case_when(REGION == 1    ~ 'GBA',
+                                        REGION == 40   ~ 'NOA',
+                                        REGION == 41   ~ 'NEA',
+                                        REGION == 42   ~ 'Cuyo',
+                                        REGION == 43   ~ 'Peampeana',
+                                        REGION == 44   ~ 'Patagonia',
+                                        FALSE          ~ 'otro'),
+         ingreso_laboral    = as.numeric(TOT_P12 + P21),
+         ingreso_no_laboral = as.numeric(T_VI),
+         CH04               = case_when(CH04 == 1 ~ "Varon",
+                                        CH04 == 2 ~ "Mujer",
+                                        FALSE     ~ "Otro") ) %>% 
+  gather(., key = Tipo_ingreso, Ingreso, c((ncol(.)-1):ncol(.)))
+datagraf  
+```
+
+Con los Kernels, no necesitamos dividir a la población en deciles, porque podemos tener una mirada completa de la forma de la distribución.    
+
+Para este gráfico, quiero eliminar los ingresos = 0
+
+```{r}
+datagraf2 <- datagraf %>% filter( Ingreso !=0)
+  
+  
+ggplot(datagraf2, aes(
+  x = Ingreso,
+  weights = PONDII,
+  group = Tipo_ingreso,
+  fill = Tipo_ingreso)) +
+  geom_density(alpha=0.7,adjust =2)+
+  labs(x="Distribución del ingreso", y="",
+       title=" Total según tipo de ingreso y género", 
+       caption = "Fuente: Encuesta Permanente de Hogares")+
+  scale_x_continuous(limits = c(0,50000))+
+  theme_tufte()+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom",
+        plot.title      = element_text(size=12))+
+  facet_wrap(~ CH04, scales = "free")
+
+ggsave(filename = paste0("../Resultados/", "Kernel_1.png"),scale = 2)
+
+```
+
+En este tipo de gráficos, importa mucho qué variable se utiliza para _facetear_ y qué variable para agrupar, ya que la construcción de la distribución es diferente. 
+
+```{r}
+ggplot(datagraf2, aes(
+  x = Ingreso,
+  weights = PONDII,
+  group = CH04,
+  fill = CH04)) +
+  geom_density(alpha=0.7,adjust =2)+
+  labs(x="Distribución del ingreso", y="",
+       title=" Total según tipo de ingreso y género", 
+       caption = "Fuente: Encuesta Permanente de Hogares")+
+  scale_x_continuous(limits = c(0,50000))+
+  theme_tufte()+
+  scale_fill_gdocs()+
+  theme(legend.position = "bottom",
+        plot.title      = element_text(size=12))+
+  facet_wrap(~Tipo_ingreso, scales = "free")
+
+ggsave(filename = paste0("../Resultados/", "Kernel_1.png"),scale = 2)
+
+```
+
+
+El eje y no tiene demasiada interpretabilidad en los Kernel, porque hace a la forma en que se construyen las distribuciones. 
+
+
+### Tendencia
+
+
+Para realizar estos gráficos, vamos a modificar un poco los datos:
+
+- filtramos los ingresos iguales a 0.
+- eliminamos las no respuestas de nivel educativo y las personas con educación especial.
+- eliminamos las respuestas de tipo de establecimiento = 'otros'.
+- recodificamos las variables para que tengan nombres más sugestivos:
+    - __Nivel educativo__ además la convertimos a factor, porque queremos explicitarle el orden de los valores con ```levels()```. El "\\n"" es un _caracter especial_ que permite que el string continúe en la siguiente línea.
+    - Sexo.
+    - Tipo de establecimiento.
+    
+    
+```{r }
+ggdata <- Individual_t117 %>% 
+  filter(P21>0,
+         !is.na(NIVEL_ED),
+         NIVEL_ED!=7, 
+         PP04A !=3) %>% 
+  mutate(NIVEL_ED = factor(case_when(NIVEL_ED == 1  ~ 'Primaria \n Incompleta', # '\n' significa carriage return, o enter
+                                     NIVEL_ED == 2  ~ 'Primaria \n Completa',
+                                     NIVEL_ED == 3  ~ 'Secundaria \nIncompleta',
+                                     NIVEL_ED == 4  ~ 'Secundaria \nCompleta',
+                                     NIVEL_ED == 5  ~ 'Superior \nUniversitaria \nIncompleta',
+                                     NIVEL_ED == 6  ~ 'Superior \nUniversitaria \nCompleta',
+                                     FALSE          ~ 'Otro'),
+                           levels= c('Primaria \n Incompleta',
+                                     'Primaria \n Completa',
+                                     'Secundaria \nIncompleta',
+                                     'Secundaria \nCompleta',
+                                     'Superior \nUniversitaria \nIncompleta',
+                                     'Superior \nUniversitaria \nCompleta')),
+         Sexo     = case_when(CH04 == 1 ~ 'Varón',
+                              CH04 == 2 ~ 'Mujer'),
+         Establecimiento    = case_when(PP04A == 1 ~ 'Estatal',
+                                        PP04A == 2 ~ 'Privado',
+                                        FALSE      ~ 'Otro'))
+
+ggdata
+```
+
+Para graficar un suavizado de las series, se utiliza la función [```geom_smooth()```](http://ggplot2.tidyverse.org/reference/geom_smooth.html). Con suavizado nos referimos al gráfico de un modelo realizado sobre los datos, que estima el valor en el punto x,y (para el grupo). Las regresiones lineales son un ejemplo de esto, aunque no el único, ni el que viene por default.
+
+```{r fig.height=5, fig.width=8}
+ggplot(ggdata, aes(CH06, P21, colour = Sexo, shape = Sexo, alpha = P21))+
+  geom_smooth() + 
+  labs(
+    x = 'Edad',
+    y = 'ingreso',
+    title = 'Ingreso por ocupación principal',
+    subtitle = 'Según edad, nivel educativo y sexo') +
+  theme_minimal()+
+  scale_y_continuous(labels = comma)+
+  scale_alpha(guide = FALSE)+
+  facet_grid(.~NIVEL_ED)
+```
+
+
+Si corremos el comando ```geom_smooth()```  por default, nos advierte que esta utilizando el método GAM, de [general additive models](https://m-clark.github.io/docs/GAM.html).      
+
+el __sombreado gris__ que envuelve cada línea es el intervalo de confianza de dicho punto (95% por default).
+
+También podemos utilizar métodos lineales, agregando el parámetro ```method = 'lm'```. Haciendo esto, el gráfico muestra una regresión lineal simple. Si queremos otro tipo de regresión lineal, le podemos explicitar la fórmula.    
+En el ejemplo siguiente, utilizamos la formula $y = \beta_0 +\beta_1x +\beta_2 x^2 $.
+
+```{r fig.height=5, fig.width=8}
+
+ggplot(ggdata, aes(CH06, P21, colour = Sexo, weight = PONDIIO)) +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2)) +
+  labs(x = 'Edad',
+       y = 'ingreso',
+       title = 'Regresion cuadrática del Ingreso por ocupación principal respecto de la Edad',
+       subtitle = 'Según Nivel educativo y sexo') +
+  theme_minimal()+
+  facet_grid(. ~ NIVEL_ED)
+```
+
+
+Si quisiéramos, además de ver la relación entre ingreso, Edad, Sexo y Nivel educativo, incorporar el tipo de establecimiento,público o privado. Podemos facetear el gráfico por dos variables en lugar de una, lo que crea una __matriz de gráficos__ según los cruces.
+
+```{r fig.height=5, fig.width=8}
+ggplot(ggdata, aes(CH06, P21, colour = Establecimiento, weight = PONDIIO)) +
+  geom_smooth(method = "lm") +
+  labs(
+  x = 'Edad',
+  y = 'ingreso',
+  title = 'Tendencia del ingreso por ocupación principal',
+  subtitle = 'Según edad, nivel educativo, sexo y tipo de establecimiento') +
+  theme_minimal()+
+  facet_grid(Sexo ~ NIVEL_ED)
+
+ggsave(filename = paste0("../Resultados/", "regresion lineal.png"),scale = 2)
+
+```
+
+
+
+
+# Ejercicios para practicar
+
+## Precios y dólar
+
+En la carpeta __fuentes__ se encuentran los archivos __dolar-diario.csv__ y __ipc-mensual.csv__. Con ellos, el objetivo es realizar un análisis exploratorio de estas variables de la economía argentina. 
+La base de datos del dolar tiene frecuencia diaria y comienza en Marzo de 2002.
+La base de datos del IPC tiene frecuencia mensual y comienza en Abril de 2016.
+
+Para trabajar con el dòlar en una frecuencia mensual vamos a considerar la cotización del primer día hábil de cada mes como la cotización de dicho mes.
+
+Deben poder mostrar los siguientes gráficos y contestar estas preguntas:
+
+a) Gráfico de la evolución del dólar (construir la frecuencia mensual del dólar con el tipo de cambio del primer día hábil del mes)
+b) Gráfico de la evolución del IPC General
+c) Gráfico de la evolución de los cuatro grupos del IPC
+d) ¿Cuál es la media, el desvío estándar, la mediana y el rango del dólar y del IPC General para cada uno de los años?
+e) Gráfico de la evolución del dólar y del IPC General para el período de tiempo que tenemos datos de ambas variables
+f) Gráfico de la evolución del dólar y de los 4 grupos de IPC para el período de tiempo que tenemos datos de ambas variables
+
+Recomendamos que intenten ir resolviendo los problemas que surjan consultandonos a nosotros, los "machetes" de R y otras páginas pero dejamos una guía de pasos y ayudas 
+
+1. Levantar ambos conjuntos de datos
+2. En el dataset del dólar renombramos la variable del tipo de cambio por algo más sencillo
+3. Creamos las variables fecha, año, mes y día 
+4. Seleccionamos el primer día hábil del mes para obtener la primer cotización del mes (para el dolar)
+5. Graficamos la evolución del tipo de cambio
+6. Normalizar los datos del IPC. *Pista*: piensen si tienen que usar $spread$ o $gather$
+7. Creamos las variables fecha, año y mes
+8. Graficamos la evolución del nivel general del IPC
+9. Graficamos la evolución de los 4 grupos
+10. Realizamos un join de ambos conjuntos de datos. Consideren qué tipo de join tienen que usar 
+11. Obtenemos las estadisticas de resumen de la pregunta d)
+11. Graficamos la evoluciòn del dólar y del nivel general del IPC (tener en cuenta el rango de las variables)
+12. Graficamos la evoluciòn del dólar y de los grupos del IPC
+
+## EPH
+
+El Objetivo de estos ejercicios es practicar el uso del $tidyverse$ para la manipulación de los datos, y $ggplot$ para graficar la información. En las consignas, se propone de manera general qué variables se quiere observar. Ustedes deberán levantar y procesar los datos de la Encuesta Permanente de Hogares, y gráficarlos como consideren que mejor se aprecia la relación entre las variables.     
+
+Una __ayuda__ es utilizar el [diseño de registro](../Fuentes/EPH_registro_2_trim_2016.pdf) para codificar las variables
+
+
+__ejercicios__
+
+- Graficar la distribución del ingreso por ocupación principal (p21) según categoría ocupacional (CAT_OCUP). (opcional: utilizar la librería [ggridges](https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html))
+
+- Incorporar en el gráfico anterior la condición de precariedad laboral (PP07H).
+
+- Quedarse sólo con los asalariados (CAT_OCUP = 3), y graficar la relación entre ingreso por ocupación principal(p21), precariedad laboral (PP07H) y tamaño del establecimiento(PP04C99).
+
+- Quedarse con los Cuentapropistas y asalariados (CAT_OCUP = 2 y 3) y comparar, según la condición de precariedad laboral (PP07H) la distribución del ingreso según sexo (CH04)
+
+- Incorporar en el gráfico anterior el tamaño del establecimiento(PP04C99)
+
+
+__yapa:__ Si quisieramos modelar la probabilidad de un evento podemos usar una regresión logísitca (en ggplot ```stat_smooth(method="glm", method.args=list(family="binomial")```).     
+Utilicen este modelo para hacer un gráfico que eche luz sobre el siguiente fenómeno: 
+
+- ¿Cómo se distribuye la probabilidad de querer trabajar más horas (PP03G) según el total de horas trabajadas por semana (PP3E_TOT)? ¿Es diferente el modelo según sexo(CH04)?
+
+
+
