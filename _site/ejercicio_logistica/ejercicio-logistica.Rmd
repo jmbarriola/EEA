@@ -1,0 +1,82 @@
+Para este ejercicio van a utilizar el dataset de Titanic de Kaggle. El mismo consiste en 2 datasets: uno de entrenamiento y otro de testeo.
+
+El objetivo es crear un modelo usando una regresión logística para predecir que pasajeros van a sobrevivir o no. Además tienen algunas preguntas para reforzar conceptos vistos en clase.
+
+## Información del dataset
+
+Cuadro variables
+
+## Lectura y analisis exploratorio
+
+1) Carguen ambos datasets
+2) Analicen su estructura
+3) Revisen si existen valores faltantes y cual podria ser una estrategia para trabajar con ellos
+4) Analicen cual es la cardinalidad (cantidad de valores distintos) de las variables nominales
+5) Analcen la distribución de la clase.
+
+```{r}
+train <- read.csv('train.csv')
+test <- read.csv('test.csv')
+
+```
+
+### Graficos
+
+Analicen las relaciones entre las variables con algunos graficos que les resulten interesantes (recuerden funciones como GGAlly)
+
+## Modelos iniciales
+
+Para este caso eliminen los registros que poseen valores faltantes 
+
+1) Realicen los siguientes modelos:
+
+a) edad= modelo solo con la edad (Age)
+b) clase = modelo solo con la clase (Pclass)
+c) edad+tarifa = modelo con la edad y la tarifa (Fare)
+d) edad+tarifa+genero = modelo con la edad, la tarifa y el genero
+
+2) Obtengan los valores de las estimaciones de los parametros para cada modelo
+
+  - Obtengan la probabilidad de supervivencia segun los cuatro modelos de una persona que tiene 35 años, es mujer, pago una tarifa de $40 y viaja en segunda clase
+
+  - Obtengan las odds segun los cuatro modelos para la misma persona
+
+3) Ordenen los modelos por la deviance explicada
+
+## Modelos propios
+
+1) En base a lo que obtuvieron de los análisis iniciales:
+
+- Elijan alguna estrategia para lidiar con los valores faltantes (eliminar registros, imputar media, imputar media por clase, etc)
+- Modifiquen variables existentes o creen algunas varaibles nuevas si lo consideran relevante. Por ejemplo: se podría discretizar la edad o como hicieron algunas personas de Kaggle extraer información de los nombres.
+
+Recuerden que todas estas modificaciones deben realizarse en ambos datasets
+
+2) **Opcional** Evaluar la importancia de las variables. Por ejemplo con Information Value
+
+3) Realicen al menos 3 modelos de regresión logística con distintas variables. Recuerden usar las funciones `formula` y `map`
+
+## Diagnóstico
+
+El criterio que vamos a utilizar para evaluar los modelos es la deviance explicada.
+
+1) Evaluen las métricas de diagnóstico para sus modelos
+
+2) Examinen los coeficientes estimados de sus 2 mejores modelos y del peor modelo
+
+3) Realicen los siguientes gráficos para los 3 modelos del punto anterior:
+  - Violin-plot
+  - Curva ROC
+  - Hosmer-Lemeshow
+
+## Elección del modelo y punto de corte
+
+1) Elijan un modelo y obtengan su AUC
+2) Definan un punto de corte y obtengan el accuracy
+
+## Predicción en el dataset de test
+
+1) Apliquen el modelo creado en el dataset de test y obtengan su AUC
+2) Clasifiquen a las personas de acuerdo al punto elegido y obtengan su accuracy 
+
+
