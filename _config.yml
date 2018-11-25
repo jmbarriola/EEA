@@ -1,2 +1,9 @@
-theme: jekyll-theme-slate
+
+title: EEA
+description: Material para el curso de Enfoque Estadistico del Aprendizaje de la maestría de Explotación de Datos de la UBA
+
+theme: jekyll-theme-cayman
+show_downloads: "true"
+
+#theme: jekyll-theme-slate
 google_analytics: UA-129695512-1
